@@ -106,12 +106,12 @@ approved for signed-in Academy users. They are never stored on GitHub. To instal
 installer at the synced OneDrive/SharePoint folder that holds them (subfolders are searched):
 
 ```
-npm run media:videos -- "<OneDrive>\\Dispatch Center\\How To Videos"
+npm run media:videos -- "<OneDrive>\Dispatch Center\How To Videos"
 ```
 
 Installed videos play inside the module step (with seeking); any not installed show
 "Not installed on this computer" and the trainee can still continue. Only file names in the
-imported Media list are ever served. To withdraw a video, delete it from `content-import\\media\\videos`.
+imported Media list are ever served. To withdraw a video, delete it from `content-import\media\videos`.
 
 ### Guided IMMIX walkthroughs (local only)
 
