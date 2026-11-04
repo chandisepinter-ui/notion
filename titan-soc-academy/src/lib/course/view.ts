@@ -4,6 +4,7 @@
  */
 import { STAGES, type Stage } from "@/lib/academy/types";
 import { canAdvanceCourse, currentCourseStep, displayOrder } from "./engine";
+import type { Walkthrough } from "./walkthrough-model";
 import type { CourseModule, CourseState, LearnCard, MasteryResult, Question, QuestionFeedback, Ruling, SourceRecord } from "./types";
 
 export type ClientQuestion = {
@@ -18,10 +19,13 @@ export type ClientQuestion = {
   ruling: Ruling | null;
 };
 
+/** A guided click-through (ungraded GUIDE practice), with frame URLs. */
+export type ClientWalkthrough = Omit<Walkthrough, "screens"> & { done: boolean; misses: number | null; screens: (Walkthrough["screens"][number] & { src: string })[] };
+
 export type CourseStepView =
   | { kind: "prime"; id: string; stage: Stage; title: string; body: string }
   | { kind: "cards"; id: string; stage: Stage; title: string; card: LearnCard & { sourceTitle: string | null; rulings: Ruling[] }; index: number; total: number }
-  | { kind: "media"; id: string; stage: Stage; title: string; body: string; files: { name: string; approved: boolean }[] }
+  | { kind: "media"; id: string; stage: Stage; title: string; body: string; files: { name: string; approved: boolean }[]; walkthroughs: ClientWalkthrough[] }
   | { kind: "info" | "supervisor-gate"; id: string; stage: Stage; title: string; cards: { title: string; body: string }[] }
   | { kind: "simulation"; id: string; stage: Stage; title: string; scenarioId: string; scenarioTitle: string; brief: string; playable: boolean; done: boolean; lastScore: number | null; lastPassed: boolean | null }
   | { kind: "pending-source"; id: string; stage: Stage; title: string; body: string; acknowledged: boolean }
@@ -71,7 +75,13 @@ export type CourseView = {
   canGoBack: boolean;
 };
 
-type Ctx = { sources: SourceRecord[]; approvedMedia: Set<string>; rulings?: Map<string, Ruling>; playableSims?: Set<string> };
+type Ctx = { sources: SourceRecord[]; approvedMedia: Set<string>; rulings?: Map<string, Ruling>; playableSims?: Set<string>; walkthroughs?: Walkthrough[] };
+
+/** Walkthroughs are offered on the module's last media step ("Watch again — now spot each step"). */
+export function walkthroughStepId(mod: CourseModule): string | null {
+  const media = mod.steps.filter((x) => x.kind === "media");
+  return media.length ? media[media.length - 1].id : null;
+}
 
 function clientQuestion(q: Question, attempt: number, ctx: Ctx): ClientQuestion {
   return {
@@ -122,7 +132,18 @@ export function buildCourseView(
       break;
     }
     case "media":
-      v = { kind: "media", id: step.id, stage: step.stage, title: step.title, body: step.body, files: step.files.map((f) => ({ name: f, approved: ctx.approvedMedia.has(f) })) };
+      v = {
+        kind: "media", id: step.id, stage: step.stage, title: step.title, body: step.body,
+        files: step.files.map((f) => ({ name: f, approved: ctx.approvedMedia.has(f) })),
+        walkthroughs: step.id === walkthroughStepId(mod)
+          ? (ctx.walkthroughs ?? []).map((w) => ({
+              ...w,
+              done: !!s.walkthroughs?.[w.id]?.done,
+              misses: s.walkthroughs?.[w.id]?.misses ?? null,
+              screens: w.screens.map((x) => ({ ...x, src: `/api/media/walkthrough/${encodeURIComponent(x.file)}` })),
+            }))
+          : [],
+      };
       break;
     case "info":
     case "supervisor-gate":

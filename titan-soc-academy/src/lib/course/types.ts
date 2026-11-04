@@ -99,6 +99,8 @@ export type CourseState = {
   /** Simulator runs launched from this module (recorded by the server when a run is scored). */
   sims?: Record<string, { guidedDone?: boolean; masteryPassed?: boolean; lastScore?: number; lastPassed?: boolean }>;
   cardIndex: Record<string, number>;
+  /** Guided IMMIX walkthroughs finished in this module (ungraded). */
+  walkthroughs?: Record<string, { done: boolean; misses: number; completedAt: number }>;
   practice: Record<string, { position: number; items: Record<string, { tries: number; solved: boolean; last?: number[]; feedback?: QuestionFeedback }> }>;
   mastery: {
     attempt: number;

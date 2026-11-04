@@ -2,7 +2,7 @@
  * Checks the IMPORTED Titan content on this computer (npm run test:content).
  * Contains no Titan content itself: it walks whatever modules were imported.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { chromium } from "playwright";
 import AxeBuilder from "@axe-core/playwright";
 
@@ -161,6 +161,42 @@ export async function run(base) {
       }
       await page.getByText("E2E test ruling").first().waitFor();
     }
+  });
+
+  await test("guided IMMIX walkthroughs: every frame loads and every walkthrough can be finished", async () => {
+    const manifestPath = "content-import/media/walkthroughs/manifest.json";
+    if (!existsSync(manifestPath)) { console.log("      (no walkthroughs installed — skipped)"); return; }
+    const rows = JSON.parse(readFileSync(manifestPath, "utf8"));
+    await signIn(page, base, "Morgan Ellis"); // preview permission; no Academy progress of their own
+    for (const f of new Set(rows.map((r) => r.File))) {
+      const res = await page.request.get(`${base}/api/media/walkthrough/${encodeURIComponent(f)}`);
+      assert(res.status() === 200, `${f}: HTTP ${res.status()}`);
+    }
+    const modules = [...new Set(rows.map((r) => r.AppID.split(".")[0]))];
+    for (const key of modules) {
+      await page.goto(`${base}/academy/${key}`);
+      for (let g = 0; g < 60 && !(await page.getByRole("heading", { name: "Guided IMMIX walkthroughs" }).count()); g++) {
+        if (await page.getByRole("button", { name: "Check answer" }).count()) await walkPractice(page);
+        const nextBtn = page.getByRole("button", { name: /^(Continue|Next|Acknowledge)/ });
+        assert(await nextBtn.count(), `${key}: walkthrough step never appeared`);
+        await nextBtn.first().click();
+        await page.waitForTimeout(150);
+      }
+      const cards = page.getByRole("button", { name: /^Walkthrough \d+ ·/ });
+      const n = await cards.count();
+      assert(n === new Set(rows.filter((r) => r.AppID.startsWith(`${key}.`)).map((r) => r.AppID)).size, `${key}: expected every walkthrough to be offered`);
+      for (let i = 0; i < n; i++) {
+        await page.getByRole("button", { name: new RegExp(`^Walkthrough ${i + 1} ·`) }).click();
+        for (let c = 0; c < 30 && !(await page.getByText(/Finished with/).count()); c++) {
+          await page.getByRole("button", { name: /^Target for:/ }).click();
+          await page.waitForTimeout(80);
+        }
+        await page.getByText(/Saved to your progress/).waitFor();
+        await page.getByRole("button", { name: "Back to walkthroughs" }).click();
+      }
+      await page.getByText(`${n} of ${n} finished`).waitFor();
+    }
+    await page.reload();
   });
 
   await test("supervisor sees the operator's graded answers", async () => {

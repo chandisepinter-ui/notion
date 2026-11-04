@@ -99,6 +99,20 @@ After dark (scenario time 18:00–07:00) day stills switch to infrared black-and
 do. To pin a specific still to a camera, create `content-import\media\immix\cameras.json`, e.g.
 `{ "SITE-ID/CAM 02": "mv-04.jpg" }`. Without stills the simulator uses drawn scenes.
 
+### Guided IMMIX walkthroughs (local only)
+
+The 30 click-through walkthroughs from the Power Apps build (161 frames, Days 2–3) appear on each
+module's **"Watch again — now spot each step"** step. The trainee clicks where they would click in
+IMMIX; a wrong click shows the hint, two wrong clicks outline the target. Ungraded GUIDE practice:
+completion and the best wrong-click count are saved to the trainee's progress. To install:
+
+```
+npm run media:walkthroughs -- "<OneDrive>\SOC Academy\titan-soc-academy\simulator\scenario_assets"
+```
+
+Frames go to `content-import\media\walkthroughs` (git-ignored) and are served only to signed-in users.
+A walkthrough whose frames are missing is hidden rather than shown broken.
+
 ### Screens and how they behave
 
 Built from the IMMIX screenshots in SharePoint (Simulation Assets › IMMIX; Dispatch Center › How To Videos ›
@@ -156,6 +170,7 @@ text size and motion are under **Profile & Preferences**.
 | `npm run check` | Type-check + unit tests of the lesson engine |
 | `npm run content:import` | Imports the Titan curriculum from `content-import\powerapps` (see above) |
 | `npm run media:import` | Builds the IMMIX camera stills from the reference screenshots (see IMMIX simulator) |
+| `npm run media:walkthroughs -- "<folder>"` | Installs the guided IMMIX walkthroughs from the OneDrive `scenario_assets` folder |
 | `npm run test:e2e` | Full browser test of every role and the practice lab, using a separate throwaway database and no Titan content. First run `npx playwright install chromium` once. |
 | `npm run test:content` | Browser check of the imported Titan content: every module opens and every step works |
 

@@ -7,6 +7,7 @@ import * as engine from "./engine";
 import type { CourseModule, CourseState, Ruling } from "./types";
 import { buildCourseView } from "./view";
 import { listScenarios } from "@/lib/sim/catalog";
+import { walkthroughsFor } from "./walkthroughs";
 
 export function playableSimIds(): Set<string> {
   return new Set(listScenarios().filter((x) => x.playable).map((x) => x.scenario.id));
@@ -49,6 +50,7 @@ export async function courseViewFor(content: CourseModule, state: CourseState) {
     approvedMedia: new Set((cat?.media ?? []).filter((m) => m.approved).map((m) => m.filename)),
     rulings: await getRulings(),
     playableSims: playableSimIds(),
+    walkthroughs: walkthroughsFor(content.key),
   });
 }
 

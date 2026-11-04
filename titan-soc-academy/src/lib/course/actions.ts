@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { assertPermission } from "@/lib/auth/guards";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { courseViewFor, loadCourse, playableSimIds } from "./service";
+import { walkthroughsFor } from "./walkthroughs";
 import { persistProgress } from "@/lib/academy/service";
 import type { AttemptRecord, CompetencyChange } from "@/lib/academy/types";
 import * as engine from "./engine";
@@ -80,4 +81,9 @@ export async function courseReviewed(key: string) {
 }
 export async function courseRetest(key: string) {
   return run(key, (c, s) => ({ state: engine.startRetest(c, s) }));
+}
+export async function courseWalkthroughDone(key: string, stepId: string, walkthroughId: string, misses: number) {
+  return run(key, (c, s) => ({
+    state: engine.recordWalkthrough(c, s, str(stepId), str(walkthroughId), Number(misses), new Set(walkthroughsFor(c.key).map((w) => w.id)), Date.now()),
+  }));
 }

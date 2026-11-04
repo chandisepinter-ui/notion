@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/Badge";
 import { StageTracker } from "@/components/lesson/Feedback";
 import { ContentStatusBadge } from "./ContentStatus";
 import { QuestionCard } from "./QuestionCard";
+import { WalkthroughList } from "./WalkthroughPlayer";
 import { startSimRun } from "@/lib/sim/actions";
 import { cn } from "@/lib/cn";
 
@@ -104,7 +105,7 @@ export function CoursePlayer({ initial }: { initial: CourseView }) {
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent"><Target aria-hidden className="size-5" /></span>
         <div>
           <h2 ref={headingRef} tabIndex={-1} className="text-lg font-semibold text-fg outline-none">{s.kind === "cards" ? s.card.title : s.title}</h2>
-          <p className="mt-0.5 text-fg-muted"><span className="font-medium text-fg">Your task:</span> {TASK[s.kind]}</p>
+          <p className="mt-0.5 text-fg-muted"><span className="font-medium text-fg">Your task:</span> {s.kind === "media" && s.walkthroughs.length ? "Work through the guided IMMIX walkthroughs below, then continue." : TASK[s.kind]}</p>
         </div>
       </div>
 
@@ -209,6 +210,7 @@ function Step({ view, s, run, pending, next, back }: { view: CourseView; s: Cour
             ))}
           </ul>
           <p className="mt-3 text-sm text-fg-subtle">Training videos are shown only after they are reviewed, sanitized and approved. You can continue without them.</p>
+          <WalkthroughList items={s.walkthroughs} pending={pending} onDone={(id, misses) => run(() => actions.courseWalkthroughDone(view.moduleKey, s.id, id, misses))} />
           <NavBar onBack={back} canBack={view.canGoBack} onNext={next} pending={pending} />
         </article>
       );

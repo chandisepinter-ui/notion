@@ -304,6 +304,21 @@ export function submitMastery(
   return { state: s, result, attempts, changes };
 }
 
+/**
+ * Records a finished guided walkthrough. Ungraded: it documents that the learner
+ * worked through the screens and how many wrong clicks they made on the way.
+ */
+export function recordWalkthrough(mod: CourseModule, input: CourseState, stepId: string, walkthroughId: string, misses: number, validIds: Set<string>, now: number): CourseState {
+  const step = currentCourseStep(mod, input);
+  if (step.kind !== "media" || step.id !== stepId) throw new LessonError("NOT_ALLOWED", "This walkthrough is not part of the current step.");
+  if (!validIds.has(walkthroughId)) throw new LessonError("NOT_ALLOWED", "Unknown walkthrough.");
+  const s = clone(input);
+  const prev = s.walkthroughs?.[walkthroughId];
+  const m = Number.isInteger(misses) && misses >= 0 ? Math.min(misses, 999) : 0;
+  s.walkthroughs = { ...(s.walkthroughs ?? {}), [walkthroughId]: { done: true, misses: prev ? Math.min(prev.misses, m) : m, completedAt: now } };
+  return s;
+}
+
 export function acknowledgeCourseRemediation(input: CourseState): CourseState {
   const s = clone(input);
   if (s.status !== "REMEDIATION") throw new LessonError("NOT_ALLOWED", "No remediation is pending.");
