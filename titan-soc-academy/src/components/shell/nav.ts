@@ -34,6 +34,7 @@ export const NAV: NavSection[] = [
       { href: "/admin/users", label: "Accounts & Roles", icon: "user-cog", permission: "admin.users.manage" },
       { href: "/admin/roles", label: "Permission Matrix", icon: "key", permission: "admin.roles.view" },
       { href: "/admin/curriculum", label: "Curriculum", icon: "layers", permission: "admin.curriculum.view" },
+      { href: "/admin/decisions", label: "Content Decisions", icon: "gavel", permission: "content.decide" },
       { href: "/admin/audit", label: "Audit Log", icon: "scroll", permission: "admin.audit.view" },
     ],
   },

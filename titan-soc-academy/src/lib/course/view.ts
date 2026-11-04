@@ -4,7 +4,7 @@
  */
 import { STAGES, type Stage } from "@/lib/academy/types";
 import { canAdvanceCourse, currentCourseStep, displayOrder } from "./engine";
-import type { CourseModule, CourseState, LearnCard, MasteryResult, Question, QuestionFeedback, SourceRecord } from "./types";
+import type { CourseModule, CourseState, LearnCard, MasteryResult, Question, QuestionFeedback, Ruling, SourceRecord } from "./types";
 
 export type ClientQuestion = {
   id: string;
@@ -14,11 +14,13 @@ export type ClientQuestion = {
   options: { index: number; text: string }[];
   scored: boolean;
   conflictId: string | null;
+  /** Owner ruling on the linked conflict, if one has been recorded. */
+  ruling: Ruling | null;
 };
 
 export type CourseStepView =
   | { kind: "prime"; id: string; stage: Stage; title: string; body: string }
-  | { kind: "cards"; id: string; stage: Stage; title: string; card: LearnCard & { sourceTitle: string | null }; index: number; total: number }
+  | { kind: "cards"; id: string; stage: Stage; title: string; card: LearnCard & { sourceTitle: string | null; rulings: Ruling[] }; index: number; total: number }
   | { kind: "media"; id: string; stage: Stage; title: string; body: string; files: { name: string; approved: boolean }[] }
   | { kind: "info" | "supervisor-gate"; id: string; stage: Stage; title: string; cards: { title: string; body: string }[] }
   | { kind: "simulation"; id: string; stage: Stage; title: string; scenarioId: string; scenarioTitle: string; brief: string }
@@ -67,8 +69,11 @@ export type CourseView = {
   canGoBack: boolean;
 };
 
-function clientQuestion(q: Question, attempt: number): ClientQuestion {
+type Ctx = { sources: SourceRecord[]; approvedMedia: Set<string>; rulings?: Map<string, Ruling> };
+
+function clientQuestion(q: Question, attempt: number, ctx: Ctx): ClientQuestion {
   return {
+    ruling: (q.conflictId && ctx.rulings?.get(q.conflictId)) || null,
     id: q.id,
     type: q.type,
     prompt: q.prompt,
@@ -81,7 +86,7 @@ function clientQuestion(q: Question, attempt: number): ClientQuestion {
 export function buildCourseView(
   mod: CourseModule,
   s: CourseState,
-  ctx: { sources: SourceRecord[]; approvedMedia: Set<string> },
+  ctx: Ctx,
 ): CourseView {
   const step = currentCourseStep(mod, s);
   const presentStages = STAGES.filter((st) => mod.steps.some((x) => x.stage === st.key));
@@ -104,7 +109,11 @@ export function buildCourseView(
         id: step.id,
         stage: step.stage,
         title: step.title,
-        card: { ...card, sourceTitle: ctx.sources.find((x) => x.id === card.sourceId)?.title ?? null },
+        card: {
+          ...card,
+          sourceTitle: ctx.sources.find((x) => x.id === card.sourceId)?.title ?? null,
+          rulings: (card.conflictIds ?? []).map((c) => ctx.rulings?.get(c)).filter((r): r is Ruling => !!r),
+        },
         index: i,
         total: step.cards.length,
       };
@@ -132,7 +141,7 @@ export function buildCourseView(
         id: step.id,
         stage: step.stage,
         title: step.title,
-        question: clientQuestion(q, 1),
+        question: clientQuestion(q, 1, ctx),
         position: p.position,
         total: step.items.length,
         tries: st?.tries ?? 0,
@@ -150,7 +159,7 @@ export function buildCourseView(
         title: step.title,
         passPercent: step.passPercent,
         attempt: s.mastery.attempt,
-        questions: step.items.map((q) => clientQuestion(q, s.mastery.attempt)),
+        questions: step.items.map((q) => clientQuestion(q, s.mastery.attempt, ctx)),
         draft: s.mastery.draft,
         result: s.mastery.result ?? null,
         remediationReviewed: s.mastery.remediationReviewed,

@@ -130,7 +130,14 @@ function main() {
   const engineStages = new Set(["REMEDIATION", "RETEST", "COMPLETE", "FEEDBACK"]);
 
   const modules: CourseModule[] = [];
+  const retired: CourseCatalog["retired"] = [];
   for (const m of modulesCsv.filter((x) => bool(x.Active))) {
+    // Owner decision (2026-11-04): Day 7 is an 8-hour SIMULATED validation shift,
+    // not the live production shift defined in the Power Apps build.
+    if (Number(m.DayNumber) === 7) {
+      retired.push({ key: m.ModuleID, title: m.Title, reason: "Replaced by the Day 7 simulated validation shift (owner decision 2026-11-04)." });
+      continue;
+    }
     const rows = lessons.filter((l) => l.ModuleID === m.ModuleID);
     const steps: CourseStep[] = [];
     const last = () => steps[steps.length - 1];
@@ -144,7 +151,8 @@ function main() {
           steps.push({ id, stage, kind: "prime", title: r.Title || m.Title, body: r.Body });
           break;
         case "learn": {
-          const card = { id: r.ContentID, title: r.Title, body: r.Body, sourceId: r.SourceID || null, notVerified: bool(r.NotVerified) };
+          const conflictIds = [...new Set(`${r.Title} ${r.Body}`.match(/\bC\d{2}\b/g) ?? [])];
+          const card = { id: r.ContentID, title: r.Title, body: r.Body, sourceId: r.SourceID || null, notVerified: bool(r.NotVerified), conflictIds };
           const l = last();
           if (l?.kind === "cards" && l.stage === stage) l.cards.push(card);
           else steps.push({ id: `${id}-${r.StepIndex}`, stage, kind: "cards", title: "Learn", cards: [card] });
@@ -224,6 +232,7 @@ function main() {
     generatedAt: new Date().toISOString(),
     catalogVersion: modulesCsv[0]?.CatalogVersion ?? "",
     modules,
+    retired,
     sources: sourcesCsv.map((s) => ({ id: s.SourceID, title: s.Title, path: s.ArchivePath, date: s.DocumentDate, status: s.SourceStatus ?? s.Status, note: s.ReadNote })),
     conflicts: conflictsCsv.map((c) => ({
       id: c.ConflictID,
@@ -235,6 +244,7 @@ function main() {
       owner: c.Owner,
       status: c.ConflictStatus ?? c.Status,
       decision: c.Decision,
+      modules: [...new Set(`${c.Impact} ${c.AuthorityA} ${c.AuthorityB}`.match(/\bD\dM\d{2}\b/g) ?? [])],
     })),
     day7Skills: day7.map((d) => ({ id: d.SkillID, name: d.SkillName, category: d.Category, critical: bool(d.CriticalSkill), sortOrder: Number(d.SortOrder) })),
     media: mediaCsv.map((x) => ({ id: x.MediaAssetID, filename: x.Filename, moduleId: x.ModuleID, approved: bool(x.Approved), status: x.VerificationStatus })),
@@ -247,6 +257,7 @@ function main() {
   const scored = modules.reduce((n, m) => n + m.steps.reduce((k, s) => k + (s.kind === "mastery" ? s.items.filter((i) => i.graded).length : 0), 0), 0);
   console.log(`✔ ${modules.length} modules · ${qCount} questions (${scored} scored in mastery) · ${catalog.sources.length} sources · ${catalog.conflicts.length} conflicts (${openConflicts.size} open) · ${catalog.day7Skills.length} Day 7 skills`);
   console.log(`✔ Wrote ${OUT}`);
+  retired.forEach((r) => console.log(`ℹ Set aside ${r.key} (${r.title}): ${r.reason}`));
   if (problems.length) {
     console.log(`\n⚠ ${problems.length} content issue(s) to review:`);
     problems.forEach((p) => console.log(`  - ${p}`));

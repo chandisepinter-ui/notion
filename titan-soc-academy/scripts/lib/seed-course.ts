@@ -24,6 +24,15 @@ export async function seedCourseCatalog(catalog: CourseCatalog) {
   await client.execute("PRAGMA foreign_keys = ON");
   const db = drizzle(client, { schema });
 
+  // Modules set aside by owner decision (e.g. Day 7 live shift) are removed if nobody started them.
+  for (const r of catalog.retired ?? []) {
+    const row = await db.query.modules.findFirst({ where: eq(schema.modules.key, r.key) });
+    if (!row) continue;
+    const used = await db.query.moduleProgress.findFirst({ where: eq(schema.moduleProgress.moduleId, row.id) });
+    if (used) await db.update(schema.modules).set({ status: "PLANNED", summary: r.reason }).where(eq(schema.modules.id, row.id));
+    else await db.delete(schema.modules).where(eq(schema.modules.id, row.id));
+  }
+
   for (const m of catalog.modules) {
     const values = {
       key: m.key,
@@ -46,9 +55,11 @@ export async function seedCourseCatalog(catalog: CourseCatalog) {
     await db.insert(schema.moduleCompetencies).values({ moduleId: row.id, competencyId: c.id }).onConflictDoNothing();
   }
 
-  // Retire built-in placeholders (PLANNED) that have no learner progress.
+  // Retire built-in placeholders (PLANNED) that imported modules replace and nobody has progress on.
+  // Days without imported modules (Day 7: simulated shift) keep their placeholder.
+  const importedDays = new Set(catalog.modules.map((m) => m.dayNumber));
   const placeholders = await db.select().from(schema.modules).where(and(eq(schema.modules.origin, "builtin"), eq(schema.modules.status, "PLANNED")));
-  for (const p of placeholders) {
+  for (const p of placeholders.filter((x) => importedDays.has(x.dayNumber))) {
     const used = await db.query.moduleProgress.findFirst({ where: eq(schema.moduleProgress.moduleId, p.id) });
     if (!used) await db.delete(schema.modules).where(eq(schema.modules.id, p.id));
   }

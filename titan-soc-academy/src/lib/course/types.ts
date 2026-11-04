@@ -26,7 +26,7 @@ export type Question = {
   verification: string;
 };
 
-export type LearnCard = { id: string; title: string; body: string; sourceId: string | null; notVerified: boolean };
+export type LearnCard = { id: string; title: string; body: string; sourceId: string | null; notVerified: boolean; conflictIds?: string[] };
 
 export type CourseStep =
   | { id: string; stage: Stage; kind: "prime"; title: string; body: string }
@@ -54,12 +54,21 @@ export type CourseModule = {
 };
 
 export type SourceRecord = { id: string; title: string; path: string; date: string; status: string; note: string };
-export type ConflictRecord = { id: string; title: string; a: string; b: string; impact: string; handling: string; owner: string; status: string; decision: string };
+export type ConflictRecord = {
+  id: string; title: string; a: string; b: string; impact: string; handling: string; owner: string; status: string; decision: string;
+  /** Module IDs named in the conflict's impact (e.g. D1M03). */
+  modules?: string[];
+};
+
+/** An owner ruling as shown to learners. */
+export type Ruling = { conflictId: string; choice: string; ruling: string; decidedAt: number; decidedBy: string };
 
 export type CourseCatalog = {
   generatedAt: string;
   catalogVersion: string;
   modules: CourseModule[];
+  /** Modules set aside by an owner decision (e.g. Day 7 live shift replaced by the simulated shift). */
+  retired: { key: string; title: string; reason: string }[];
   sources: SourceRecord[];
   conflicts: ConflictRecord[];
   day7Skills: { id: string; name: string; category: string; critical: boolean; sortOrder: number }[];

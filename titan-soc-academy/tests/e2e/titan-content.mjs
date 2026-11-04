@@ -124,6 +124,45 @@ export async function run(base) {
     if (catalog.conflicts.some((c) => c.status === "OPEN")) await page.getByRole("heading", { name: "Open source conflicts" }).waitFor();
   });
 
+  await test("Day 7 is the simulated validation shift (planned), not the imported live shift", async () => {
+    await page.goto(`${base}/academy`);
+    await page.getByText("Simulated Validation Shift", { exact: true }).waitFor();
+    for (const r of catalog.retired ?? []) {
+      const res = await page.goto(`${base}/academy/${r.key}`);
+      assert(res.status() === 404, `${r.key} should not be playable`);
+    }
+  });
+
+  await test("administrator records a content decision; it is audited and shown to learners", async () => {
+    // Prefer a conflict linked to a practice question so the ruling can be seen in a lesson.
+    const linked = catalog.modules.flatMap((m) => m.steps.flatMap((st) => (st.kind === "practice" ? st.items.filter((q) => q.conflictId).map((q) => ({ m, q })) : [])))
+      .find(({ q }) => catalog.conflicts.some((x) => x.id === q.conflictId && x.status === "OPEN"));
+    const c = linked ? catalog.conflicts.find((x) => x.id === linked.q.conflictId) : catalog.conflicts.find((x) => x.status === "OPEN");
+    await page.goto(`${base}/admin/decisions`);
+    const panel = page.locator("section", { has: page.getByRole("heading", { name: c.id, exact: true }) });
+    await panel.getByRole("radio", { name: "My own ruling" }).click();
+    await panel.locator("textarea").fill("E2E test ruling: this text exists only in the throwaway test database.");
+    await panel.getByRole("button", { name: "Record ruling" }).click();
+    await panel.getByText("Ruling saved.").waitFor();
+    await page.reload();
+    await page.locator("section", { has: page.getByRole("heading", { name: c.id, exact: true }) }).getByText(/Decided/).waitFor();
+    await page.goto(`${base}/admin/audit`);
+    await page.getByText("content_decision.record").first().waitFor();
+    if (linked) {
+      await signIn(page, base, "Riley Chen"); // preview permission, fresh progress
+      await page.goto(`${base}/academy/${linked.m.key}`);
+      for (let guard = 0; guard < 60; guard++) {
+        if (await page.getByText(`Ruling recorded · ${c.id}`).count()) break;
+        if (await page.getByRole("button", { name: "Check answer" }).count()) await walkPractice(page);
+        const nextBtn = page.getByRole("button", { name: /^(Continue|Next|Acknowledge)/ });
+        assert(await nextBtn.count(), "ruling never appeared in the lesson");
+        await nextBtn.first().click();
+        await page.waitForTimeout(150);
+      }
+      await page.getByText("E2E test ruling").first().waitFor();
+    }
+  });
+
   await test("supervisor sees the operator's graded answers", async () => {
     await signIn(page, base, "Morgan Ellis");
     await page.getByRole("link", { name: /Jordan Reyes/ }).click();

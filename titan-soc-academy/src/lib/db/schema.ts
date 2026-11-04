@@ -260,3 +260,23 @@ export const auditLog = sqliteTable("audit_log", {
   detailJson: text("detail_json"),
   createdAt: createdAt(),
 });
+
+/* ------------------------------------------------------------------ */
+/* Content decisions (owner rulings on source conflicts)               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A ruling on a source conflict from the imported Titan catalog.
+ * Append-only: the newest row for a conflict is the current ruling.
+ * Stored only in the local database (never in the repository).
+ */
+export const contentDecisions = sqliteTable("content_decisions", {
+  id: id(),
+  conflictId: text("conflict_id").notNull(),
+  /** A | B | CUSTOM | NOT_APPLICABLE */
+  choice: text("choice").notNull(),
+  /** The operative rule in plain words, as operators should follow it. */
+  ruling: text("ruling").notNull(),
+  decidedById: text("decided_by_id").notNull().references(() => users.id),
+  createdAt: createdAt(),
+});

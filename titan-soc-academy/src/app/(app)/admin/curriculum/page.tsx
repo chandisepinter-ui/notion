@@ -42,7 +42,7 @@ export default async function CurriculumPage() {
 
         {open.length > 0 && (
           <Panel aria-labelledby="conflicts">
-            <PanelHeader title="Open source conflicts" id="conflicts" eyebrow="Affected items are not scored until decided" />
+            <PanelHeader title="Open source conflicts" id="conflicts" eyebrow="Affected items are not scored until decided" actions={<a href="/admin/decisions" className="text-sm font-medium text-accent-strong hover:underline">Record decisions</a>} />
             <ul className="grid gap-3 p-6">
               {open.map((c) => (
                 <li key={c.id} className="rounded-xl border border-warning/40 bg-warning-soft p-4 text-sm">

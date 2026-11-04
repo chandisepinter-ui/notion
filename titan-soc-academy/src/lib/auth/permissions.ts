@@ -17,6 +17,7 @@ export const PERMISSIONS = {
   ADMIN_ROLES_VIEW: "admin.roles.view",
   ADMIN_CURRICULUM_VIEW: "admin.curriculum.view",
   ADMIN_AUDIT_VIEW: "admin.audit.view",
+  CONTENT_DECIDE: "content.decide",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -33,6 +34,7 @@ export const PERMISSION_DEFINITIONS: { key: PermissionKey; category: string; des
   { key: PERMISSIONS.ADMIN_USERS_MANAGE, category: "Administration", description: "View accounts and change role assignments." },
   { key: PERMISSIONS.ADMIN_ROLES_VIEW, category: "Administration", description: "View roles and the permission matrix." },
   { key: PERMISSIONS.ADMIN_CURRICULUM_VIEW, category: "Administration", description: "View curriculum, scenarios and items pending SME approval." },
+  { key: PERMISSIONS.CONTENT_DECIDE, category: "Administration", description: "Rule on source conflicts in the training content (decisions are shown to operators)." },
   { key: PERMISSIONS.ADMIN_AUDIT_VIEW, category: "Administration", description: "View the administrative audit log." },
 ];
 
@@ -97,6 +99,7 @@ export const ROLE_DEFINITIONS: {
       PERMISSIONS.ADMIN_ROLES_VIEW,
       PERMISSIONS.ADMIN_CURRICULUM_VIEW,
       PERMISSIONS.ADMIN_AUDIT_VIEW,
+      PERMISSIONS.CONTENT_DECIDE,
     ],
   },
 ];

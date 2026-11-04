@@ -22,7 +22,7 @@ export const ACADEMY_DAYS = [
   { dayNumber: 4, title: "Email & Teams", format: "Guided instruction + simulation", summary: "Professional written communication, notifications and internal coordination." },
   { dayNumber: 5, title: "ATM Operations", format: "Guided instruction + simulation", summary: "ATM alarm and service workflows." },
   { dayNumber: 6, title: "Radio Operations", format: "Guided instruction + simulation", summary: "Phonetic alphabet, military time, radio discipline, call signs and logging." },
-  { dayNumber: 7, title: "Supervisor Review", format: "8-hour simulated validation shift", summary: "Continuous simulated operational shift with supervisor evaluation and graduation sign-off." },
+  { dayNumber: 7, title: "Supervisor Review", format: "8-hour simulated validation shift", summary: "A continuous eight-hour simulated operational shift. Your supervisor evaluates each practical skill and signs off graduation." },
 ] as const;
 
 export type ModuleSeed = {
@@ -54,7 +54,7 @@ export const MODULE_SEEDS: ModuleSeed[] = [
   { key: "email-teams-communication", dayNumber: 4, title: "Professional Communication", summary: "Email and Teams standards for notifications and coordination.", status: "PLANNED", isPreview: false, estimatedMinutes: null, sortOrder: 1 },
   { key: "atm-operations", dayNumber: 5, title: "ATM Operations", summary: "ATM alarm and service workflows.", status: "PLANNED", isPreview: false, estimatedMinutes: null, sortOrder: 1 },
   { key: "radio-operations", dayNumber: 6, title: "Radio Operations", summary: "Radio discipline, phonetics, military time and logging.", status: "PLANNED", isPreview: false, estimatedMinutes: null, sortOrder: 1 },
-  { key: "day7-validation-shift", dayNumber: 7, title: "Validation Shift", summary: "Eight-hour simulated shift with supervisor evaluation.", status: "PLANNED", isPreview: false, estimatedMinutes: null, sortOrder: 1 },
+  { key: "day7-validation-shift", dayNumber: 7, title: "Simulated Validation Shift", summary: "Continuous eight-hour simulated shift across IMMIX, HubSpot, TrackTik, phones, email/Teams and radio, evaluated and signed off by a supervisor. Requires the simulator (Phase 3).", status: "PLANNED", isPreview: false, estimatedMinutes: 480, sortOrder: 1 },
 ];
 
 export const SKILL_SEEDS = [

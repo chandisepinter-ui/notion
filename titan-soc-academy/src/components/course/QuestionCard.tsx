@@ -28,10 +28,16 @@ export function QuestionCard({
       <legend className="w-full">
         <span className="flex flex-wrap items-center gap-2">
           {number !== undefined && <span className="font-mono text-xs text-fg-subtle">Question {number}</span>}
-          {!q.scored && <Badge tone="warning">Not scored{q.conflictId ? ` · pending decision ${q.conflictId}` : ""}</Badge>}
+          {!q.scored && <Badge tone="warning">Not scored{q.conflictId && !q.ruling ? ` · pending decision ${q.conflictId}` : ""}</Badge>}
+          {q.ruling && <Badge tone="success">Ruling recorded · {q.conflictId}</Badge>}
         </span>
         <span className="mt-1.5 block text-[1.0625rem] font-medium leading-relaxed text-fg">{q.prompt}</span>
         <span className="mt-1 block text-sm text-fg-subtle">{instruction}</span>
+        {q.ruling && (
+          <span className="mt-3 block rounded-xl border border-success/40 bg-success-soft px-4 py-3 text-sm text-fg">
+            <strong>Supervisor ruling ({q.conflictId}):</strong> {q.ruling.ruling}
+          </span>
+        )}
       </legend>
 
       {q.type === "order" ? (

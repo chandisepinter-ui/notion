@@ -120,6 +120,17 @@ export function CoursePlayer({ initial }: { initial: CourseView }) {
   );
 }
 
+/** An owner ruling that settles a source conflict — shown wherever the conflict affects content. */
+export function RulingNote({ r }: { r: { conflictId: string; ruling: string; choice: string; decidedAt: number; decidedBy: string } }) {
+  return (
+    <div className="mt-5 rounded-2xl border border-success/40 bg-success-soft p-4">
+      <p className="flex items-center gap-2 text-sm font-semibold text-fg"><ShieldCheck aria-hidden className="size-4 text-success" /> Supervisor ruling · {r.conflictId}</p>
+      <p className="mt-1.5 whitespace-pre-wrap leading-relaxed text-fg">{r.ruling}</p>
+      <p className="mt-1.5 text-xs text-fg-subtle">Decided by {r.decidedBy} · {new Date(r.decidedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}. This ruling takes precedence over the card above where they differ.</p>
+    </div>
+  );
+}
+
 /** Renders body text: line breaks become paragraphs; "Why it matters:" etc. get emphasis. */
 function Body({ text, large }: { text: string; large?: boolean }) {
   return (
@@ -172,8 +183,9 @@ function Step({ view, s, run, pending, next, back }: { view: CourseView; s: Cour
             </div>
           </div>
           <Body text={s.card.body} />
+          {s.card.rulings.map((r) => <RulingNote key={r.conflictId} r={r} />)}
           <div className="mt-5 flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
-            {s.card.notVerified && <Badge tone="warning">Not verified — confirm with your supervisor</Badge>}
+            {s.card.notVerified && s.card.rulings.length === 0 && <Badge tone="warning">Not verified — confirm with your supervisor</Badge>}
             {s.card.sourceTitle && <span className="inline-flex items-center gap-1.5"><ShieldCheck aria-hidden className="size-3.5" /> Source: {s.card.sourceTitle}</span>}
           </div>
           <NavBar onBack={back} canBack={view.canGoBack} onNext={next} nextLabel={s.index < s.total - 1 ? "Next" : "Continue"} pending={pending} />

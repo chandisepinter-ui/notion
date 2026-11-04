@@ -34,7 +34,7 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleK
         </div>
       );
     }
-    return <CoursePlayer initial={courseViewFor(loaded.content, loaded.state)} />;
+    return <CoursePlayer initial={await courseViewFor(loaded.content, loaded.state)} />;
   }
 
   const loaded = await loadLesson(user.id, moduleKey);

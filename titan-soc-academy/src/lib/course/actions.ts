@@ -44,7 +44,7 @@ async function run(key: string, op: Op): Promise<CourseActionResult> {
       scorePercent: out.scorePercent,
     });
     revalidatePath("/dashboard");
-    return { ok: true, view: courseViewFor(loaded.content, out.state), feedback: out.feedback };
+    return { ok: true, view: await courseViewFor(loaded.content, out.state), feedback: out.feedback };
   } catch (e) {
     if (e instanceof engine.LessonError) return { ok: false, error: e.message };
     console.error("[course action]", e);

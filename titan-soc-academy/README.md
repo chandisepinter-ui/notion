@@ -72,6 +72,16 @@ What the import does with your content:
 * Training videos appear only once marked approved in `SOC_Academy_Media.csv` (none are yet).
 * Modules without approved graded content (e.g. *Living the Motto*) record **Completed — pending source**.
 * Simulator steps (S01–S10) are shown as *Planned · Phase 3* until the simulator is built.
+* **Day 7 is the eight-hour simulated validation shift** (owner decision, 2026-11-04). The Power Apps
+  live-shift module (D7M01) is set aside by the import; the simulated shift arrives with the simulator.
+
+## Deciding source conflicts
+
+Sign in as the Administrator and open **Administration → Content Decisions**. For each open conflict,
+choose Source A, Source B, your own ruling, or "not applicable", and write the ruling in plain words.
+Operators see your ruling immediately under every learn card and question the conflict affects.
+Every ruling is kept (newest wins) and recorded in the audit log. Rulings are stored only in your local
+database. Afterwards, update the source content to match and re-run `npm run content:import`.
 * Operators unlock modules in order; supervisors and administrators can preview any module.
 
 ## Try it (5-minute tour)
