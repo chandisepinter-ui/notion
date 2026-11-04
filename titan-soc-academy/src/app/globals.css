@@ -1,0 +1,233 @@
+@import "tailwindcss";
+
+/* ==================================================================
+   TITAN 3055 — design tokens
+   Two themes: "Architectural" (light) and "Midnight" (dark).
+   Components use semantic tokens only (bg-surface, text-fg, ...),
+   never raw hex values, so both themes stay consistent.
+   ================================================================== */
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  color-scheme: light;
+  --bg: #eceff4;
+  --bg-elevated: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #f4f6f9;
+  --surface-3: #e8ecf2;
+  --line: rgba(15, 23, 42, 0.09);
+  --line-strong: rgba(15, 23, 42, 0.18);
+  --fg: #0a1220;
+  --fg-muted: #44506a;
+  --fg-subtle: #5d6a80;
+  --titanium: #8a94a6;
+  --accent: #1c58d6;
+  --accent-strong: #1446b0;
+  --accent-soft: rgba(28, 88, 214, 0.09);
+  --accent-line: rgba(28, 88, 214, 0.35);
+  --accent-fg: #ffffff;
+  --success: #0b7a4f;
+  --success-soft: rgba(11, 122, 79, 0.1);
+  --warning: #935600;
+  --warning-soft: rgba(201, 125, 0, 0.13);
+  --danger: #b4231a;
+  --danger-soft: rgba(180, 35, 26, 0.09);
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 24px -12px rgba(15, 23, 42, 0.12);
+  --shadow-float: 0 24px 60px -24px rgba(15, 23, 42, 0.35);
+  --grid-line: rgba(15, 23, 42, 0.035);
+  --halo: rgba(28, 88, 214, 0.08);
+  --scene-tint: #b9c7b4;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #04070d;
+  --bg-elevated: #070c16;
+  --surface: #0b1220;
+  --surface-2: #101929;
+  --surface-3: #172236;
+  --line: rgba(148, 163, 184, 0.11);
+  --line-strong: rgba(148, 163, 184, 0.22);
+  --fg: #e7ecf4;
+  --fg-muted: #a6b1c4;
+  --fg-subtle: #8290a6;
+  --titanium: #9aa5b8;
+  --accent: #4f8fff;
+  --accent-strong: #7eacff;
+  --accent-soft: rgba(79, 143, 255, 0.13);
+  --accent-line: rgba(79, 143, 255, 0.45);
+  --accent-fg: #03101f;
+  --success: #3dd68c;
+  --success-soft: rgba(61, 214, 140, 0.12);
+  --warning: #f5b847;
+  --warning-soft: rgba(245, 184, 71, 0.13);
+  --danger: #ff7a70;
+  --danger-soft: rgba(255, 122, 112, 0.12);
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 0 0 1px rgba(0, 0, 0, 0.2), 0 18px 40px -24px rgba(0, 0, 0, 0.8);
+  --shadow-float: 0 30px 80px -20px rgba(0, 0, 0, 0.85);
+  --grid-line: rgba(148, 163, 184, 0.035);
+  --halo: rgba(79, 143, 255, 0.1);
+  --scene-tint: #9fb59a;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-titanium: var(--titanium);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+  --color-accent-fg: var(--accent-fg);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --shadow-panel: var(--shadow-panel);
+  --shadow-float: var(--shadow-float);
+}
+
+/* ------------------------------------------------------------------ */
+/* Base                                                                */
+/* ------------------------------------------------------------------ */
+
+html {
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+html[data-text="large"] {
+  font-size: 115%;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01", "ss03";
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+/* Command-center atmosphere: faint architectural grid + a soft halo. */
+.titan-atmosphere {
+  background-image:
+    radial-gradient(1200px 600px at 85% -10%, var(--halo), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, var(--halo), transparent 60%),
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: auto, auto, 48px 48px, 48px 48px;
+  background-attachment: fixed;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+/* Highly visible focus for keyboard users — never removed. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Surfaces                                                            */
+/* ------------------------------------------------------------------ */
+
+.titan-panel {
+  position: relative;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--surface) 100%, white 2%), var(--surface));
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow-panel);
+}
+/* Precision edge-light along the top of primary panels. */
+.titan-panel[data-edge="true"]::before {
+  content: "";
+  position: absolute;
+  inset: -1px -1px auto -1px;
+  height: 1px;
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(90deg, transparent, var(--accent-line) 30%, var(--accent-line) 70%, transparent);
+  pointer-events: none;
+}
+
+.titan-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
+
+.titan-hairline {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
+}
+
+/* Camera feed look */
+.scene-noise {
+  background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px);
+}
+
+/* ------------------------------------------------------------------ */
+/* Purposeful motion (disabled for reduced-motion preference)          */
+/* ------------------------------------------------------------------ */
+
+@keyframes titan-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes titan-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@keyframes titan-scan {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(100%); }
+}
+.animate-rise { animation: titan-rise 260ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.animate-live { animation: titan-pulse 1.6s ease-in-out infinite; }
+.animate-scan { animation: titan-scan 6s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="full"]) *,
+  html:not([data-motion="full"]) *::before,
+  html:not([data-motion="full"]) *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+html[data-motion="reduced"] *,
+html[data-motion="reduced"] *::before,
+html[data-motion="reduced"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+.sr-only-focusable:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
