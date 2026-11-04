@@ -4,6 +4,7 @@ import { db, schema } from "@/lib/db/client";
 import { evaluate, initialSimState, isSupported, nextTimelineEvent, sanitizeScenario, taskProgress } from "./engine";
 import { getScenario } from "./catalog";
 import type { SimResult, SimState } from "./types";
+import { mediaForScenario } from "./media";
 
 export type RunMode = "practice" | "guided" | "mastery";
 
@@ -35,6 +36,8 @@ export function runView(run: { id: string; mode: string; moduleKey: string | nul
     status: run.status,
     scenario: sanitizeScenario(entry.scenario),
     outcomes: entry.config.outcomes,
+    /** Local camera stills per camera (owner-authorized, never committed), or null for drawn scenes. */
+    media: mediaForScenario(entry.scenario),
     defaultTalkdown: entry.config.defaultTalkdown,
     /** Criteria this build cannot evaluate yet (they need Computer 2 apps); excluded from the score. */
     unsupported: entry.scenario.criteria.filter((c) => !isSupported(c.check)).map((c) => c.label),

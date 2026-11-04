@@ -315,7 +315,7 @@ export function evaluate(s: SimScenario, cfg: ImmixConfig, st: SimState): SimRes
         case "NOTE_HAS": {
           const notes = [
             ...Object.values(st.alerts).map((a) => a.note ?? ""),
-            ...st.actions.filter((a) => a.type === "PARK").map((a) => (a as { note: string }).note),
+            ...st.actions.filter((a) => a.type === "PARK" || a.type === "ADD_NOTE").map((a) => (a as { note: string }).note),
           ].join(" \n ").toLowerCase();
           passed = ((p.all as string[]) ?? []).every((w) => notes.includes(w.toLowerCase()));
           break;

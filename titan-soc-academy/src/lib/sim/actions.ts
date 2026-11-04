@@ -25,6 +25,8 @@ const ActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("CALL_START"), alertId: id, contactId: z.string().max(40), at }),
   z.object({ type: z.literal("PARK"), alertId: id, minutes: z.number().int().min(0).max(1440), note: z.string().max(250), at }),
   z.object({ type: z.literal("CLOSE"), alertId: id, outcome: z.string().max(80), note: z.string().max(5000), at }),
+  z.object({ type: z.literal("ACK_ALARMS"), alertId: id, at }),
+  z.object({ type: z.literal("ADD_NOTE"), alertId: id, note: z.string().min(1).max(2000), validFrom: z.string().max(40).optional(), validTo: z.string().max(40).optional(), at }),
   z.object({ type: z.literal("ADVANCE_TIME"), seconds: z.number().int().min(1).max(3600), at }),
 ]);
 

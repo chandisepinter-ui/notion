@@ -79,10 +79,31 @@ What the import does with your content:
 
 ## IMMIX simulator (Computer 1)
 
-Open **Simulator** in the menu. Each scenario runs on a simulated IMMIX workstation laid out like the
-real console: alarm queue → **Process Alarm** → event screen with the event clip (pre/post-alarm),
-camera list and audio talk-down, live view, the site tabs (Alarms, Current Events, Previous Events,
-Arming/Disarming, Notes, Maps, Scripts), **Details**, **MultiView**, **Park Event** and **Close Event**.
+Open **Simulator** in the menu. The workstation is a replica of the Titan IMMIX Cloud screens, built
+from the sanitized reference screenshots (colours, layout and controls measured from them):
+Alarms home (red alert background, orange queue rows, **PROCESS ALARM**, Patrols / Parked Events /
+On Test) → event screen (event clip with the clip dropdown and player bar, Cameras / Audio / Edge
+Devices, live view with its toolbar, the bottom tabs) → **Close Event** (two-level outcome),
+**Park Event**, and **MultiView**, which opens in its own window as on the live system.
+
+### Real camera footage (local only)
+
+The cameras show real Titan camera stills (owner-authorized 2026-11-04), never stored on GitHub.
+To install them on a computer:
+
+1. From SharePoint **SOC Academy Simulation Assets › IMMIX**, download `Event - Notes.png`,
+   `Event - Maps.png` and `Event - Multiview.png` into `content-import\reference\immix`.
+2. Run `npm run media:import`. It cuts 16 camera stills into `content-import\media\immix`.
+
+After dark (scenario time 18:00–07:00) day stills switch to infrared black-and-white, as real cameras
+do. To pin a specific still to a camera, create `content-import\media\immix\cameras.json`, e.g.
+`{ "SITE-ID/CAM 02": "mv-04.jpg" }`. Without stills the simulator uses drawn scenes.
+
+### Not yet exact (no reference screenshot)
+
+Details window · Audio / talk-down panel (live: microphone; training: type what you would say) ·
+Scripts, Arming/Disarming, Problems and Audit Event tabs · Raise · the Dashboard/Setup/Reports/Events/
+Cameras/Walls pages. These are marked "not simulated" or approximate until screenshots are provided.
 
 * Time runs at real speed. *Skip ahead* jumps to the next scheduled event (e.g. an E-CARE reconnect);
   it is disabled while MultiView is open, because absence must be watched live.
@@ -129,6 +150,7 @@ text size and motion are under **Profile & Preferences**.
 | `npm run db:reset` | Deletes the local database and rebuilds it (all local progress is lost) |
 | `npm run check` | Type-check + unit tests of the lesson engine |
 | `npm run content:import` | Imports the Titan curriculum from `content-import\powerapps` (see above) |
+| `npm run media:import` | Builds the IMMIX camera stills from the reference screenshots (see IMMIX simulator) |
 | `npm run test:e2e` | Full browser test of every role and the practice lab, using a separate throwaway database and no Titan content. First run `npx playwright install chromium` once. |
 | `npm run test:content` | Browser check of the imported Titan content: every module opens and every step works |
 

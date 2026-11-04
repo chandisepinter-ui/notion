@@ -388,10 +388,11 @@ export async function run(base) {
     await page.locator("li", { hasText: "PRACTICE-TALKDOWN" }).getByRole("button", { name: "Start practice" }).click();
     await page.waitForURL(/\/sim\//);
     await page.getByRole("button", { name: /PROCESS ALARM/ }).click();
-    // Review both clips at 1.00x, start to finish.
-    for (const phase of ["Pre-alarm", "Post-alarm"]) {
-      await page.getByRole("button", { name: phase }).click();
+    // Review both clips at 1.00x, start to finish (the clip selector is the IMMIX dropdown).
+    for (const phase of ["pre", "post"]) {
+      await page.getByLabel("Select event clip").selectOption(phase);
       await page.getByRole("button", { name: "Play clip" }).click();
+      await page.getByRole("button", { name: "Pause clip" }).waitFor();
       await page.getByRole("button", { name: "Play clip" }).waitFor({ timeout: 20000 });
     }
     await page.getByRole("tab", { name: /Notes/ }).click();
@@ -400,22 +401,26 @@ export async function run(base) {
     // Progress persists across a reload.
     await page.reload();
     await page.getByRole("tab", { name: "Current Events" }).click();
-    await page.getByText("Map viewed").waitFor();
+    await page.getByText(/Started Processing by Jordan Reyes/).waitFor();
     await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze().then((r) => {
       const bad = r.violations.filter((v) => ["serious", "critical"].includes(v.impact));
       assert(!bad.length, "axe: " + bad.map((v) => `${v.id} ${v.nodes[0]?.target}`).join("; "));
     });
-    await page.getByRole("button", { name: /Audio — talk-down/ }).click();
+    await page.getByRole("button", { name: "Audio", exact: true }).click();
     await page.getByRole("button", { name: "Speak", exact: true }).click();
-    await page.getByRole("button", { name: "MultiView" }).click();
-    await page.getByRole("dialog", { name: "MultiView" }).waitFor();
-    await page.screenshot({ path: "tests/e2e/screenshots/15-sim-multiview.png" });
+    // MultiView opens in its own window, as in IMMIX.
+    const [mv] = await Promise.all([page.waitForEvent("popup"), page.getByRole("button", { name: "MultiView" }).click()]);
+    await mv.getByRole("heading", { name: /MultiView/ }).waitFor({ state: "attached" });
+    await mv.screenshot({ path: "tests/e2e/screenshots/15-sim-multiview.png" });
     // Watch until the subject has been gone from every camera for 2 full minutes (30 s + 120 s).
     await page.waitForTimeout(156000);
-    await page.getByRole("button", { name: "Close MultiView" }).click();
+    await mv.close({ runBeforeUnload: true });
+    await page.waitForTimeout(1500);
+    await page.getByRole("tab", { name: "Current Events" }).click();
+    await page.getByText("MultiView Closed.").waitFor();
     await page.getByRole("button", { name: "Close Event" }).click();
-    await page.getByLabel("Outcome:").selectOption("Talkdown Successful");
-    await page.getByLabel("Note:").fill("Site script talkdown played on CAM 04 Speaker. MultiView: subject gone from all cameras for 2 minutes.");
+    await page.getByLabel("Outcome", { exact: true }).selectOption("Talkdown Successful");
+    await page.getByLabel("Note", { exact: true }).fill("Site script talkdown played on CAM 04 Speaker. MultiView: subject gone from all cameras for 2 minutes.");
     await page.getByRole("button", { name: "Ok" }).click();
     await page.getByRole("button", { name: "Finish & score" }).click();
     await page.getByText("Passed", { exact: true }).waitFor();

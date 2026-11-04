@@ -78,6 +78,8 @@ export type SimAction =
   | { type: "PARK"; alertId: string; minutes: number; note: string; at: number }
   | { type: "CLOSE"; alertId: string; outcome: string; note: string; at: number }
   | { type: "BACK_TO_QUEUE"; alertId: string; at: number }
+  | { type: "ACK_ALARMS"; alertId: string; at: number }
+  | { type: "ADD_NOTE"; alertId: string; note: string; validFrom?: string; validTo?: string; at: number }
   | { type: "ADVANCE_TIME"; seconds: number; at: number };
 
 export type AlertStatus = "pending" | "queued" | "open" | "parked" | "closed";
