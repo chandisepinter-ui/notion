@@ -5,6 +5,7 @@ import { evaluate, initialSimState, isSupported, nextTimelineEvent, sanitizeScen
 import { getScenario } from "./catalog";
 import type { SimResult, SimState } from "./types";
 import { mediaForScenario } from "./media";
+import { timeZoneForAddress } from "./timezones";
 
 export type RunMode = "practice" | "guided" | "mastery";
 
@@ -38,6 +39,9 @@ export function runView(run: { id: string; mode: string; moduleKey: string | nul
     outcomes: entry.config.outcomes,
     /** Local camera stills per camera (owner-authorized, never committed), or null for drawn scenes. */
     media: mediaForScenario(entry.scenario),
+    /** Operator (SOC) time zone and each site's zone, for IMMIX "Site Time". */
+    socTimeZone: process.env.SOC_TIME_ZONE || "America/Chicago",
+    siteTimeZones: Object.fromEntries(entry.scenario.sites.map((x) => [x.id, (x as { timeZone?: string }).timeZone ?? timeZoneForAddress(x.address)])),
     defaultTalkdown: entry.config.defaultTalkdown,
     /** Criteria this build cannot evaluate yet (they need Computer 2 apps); excluded from the score. */
     unsupported: entry.scenario.criteria.filter((c) => !isSupported(c.check)).map((c) => c.label),

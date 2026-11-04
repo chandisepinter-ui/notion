@@ -20,6 +20,7 @@ import { finishSimRun, sendSimActions } from "@/lib/sim/actions";
 import type { RunView } from "@/lib/sim/service";
 import { ImmixCamera } from "@/components/immix/ImmixCamera";
 import { cn } from "@/lib/cn";
+import { toSiteTime } from "@/lib/sim/timezones";
 
 type Alert = RunView["scenario"]["alerts"][number];
 type Site = SimScenario["sites"][number];
@@ -522,7 +523,7 @@ function EventScreen({ alert, view, scn, state, clock, now, send, operatorName }
           ))}
         </div>
         <div role="tabpanel" className="flex-1 overflow-auto p-4">
-          <TabContent tab={tab} alert={alert} as={as} site={site} state={state} startLocal={view.scenario.startLocal} operatorName={operatorName} onSetOutcome={() => setModal("close")} onAck={() => send({ type: "ACK_ALARMS", alertId: alert.id, at: clock })} onAddNote={() => setModal("note")} />
+          <TabContent tab={tab} alert={alert} as={as} site={site} state={state} startLocal={view.scenario.startLocal} operatorName={operatorName} toSite={(d) => toSiteTime(d, view.socTimeZone, view.siteTimeZones[site.id] ?? null)} onSetOutcome={() => setModal("close")} onAck={() => send({ type: "ACK_ALARMS", alertId: alert.id, at: clock })} onAddNote={() => setModal("note")} />
         </div>
       </div>
 
@@ -678,9 +679,9 @@ function GridTable({ head, rows, caption }: { head: string[]; rows: React.ReactN
   );
 }
 
-function TabContent({ tab, alert, as, site, state, startLocal, operatorName, onSetOutcome, onAck, onAddNote }: { tab: Tab; alert: Alert; as: SimState["alerts"][string]; site: Site; state: SimState; startLocal: string; operatorName: string; onSetOutcome: () => void; onAck: () => void; onAddNote: () => void }) {
-  // Site time equals operator time unless a scenario defines a site time zone (none do yet).
-  const siteTime = (d: Date) => immixDate(d);
+function TabContent({ tab, alert, as, site, state, startLocal, operatorName, toSite, onSetOutcome, onAck, onAddNote }: { tab: Tab; alert: Alert; as: SimState["alerts"][string]; site: Site; state: SimState; startLocal: string; operatorName: string; toSite: (d: Date) => Date; onSetOutcome: () => void; onAck: () => void; onAddNote: () => void }) {
+  // Site Time = the site's local time (differs from operator time only across time zones).
+  const siteTime = (d: Date) => immixDate(toSite(d));
   switch (tab) {
     case "Alarms": {
       const rows: React.ReactNode[][] = [];
