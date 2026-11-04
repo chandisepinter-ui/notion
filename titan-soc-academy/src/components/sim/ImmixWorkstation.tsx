@@ -491,7 +491,7 @@ function EventScreen({ alert, view, scn, state, clock, now, send, operatorName }
                 <Loader2 aria-hidden className="absolute left-1/2 top-1/2 size-10 -translate-x-1/2 -translate-y-1/2 animate-spin text-white" />
               </div>
             ) : (
-              <div className="h-full">
+              <div className="h-full w-full">
                 <ImmixCamera media={view.media?.[live]} cameraLabel={site.cameras.find((c) => c.id === live)?.name ?? live} siteId={site.id} when={now} subject={subjectOnCamera(scn, state, live, clock)} offSiteCamera={offSiteCams.has(live)} title={`Live view ${live}`} />
               </div>
             )}
@@ -614,7 +614,10 @@ function EventClip({ alert, site, view, clock, send, offSite }: { alert: Alert; 
 
   const beat = clip ? clip.beats.find((b) => t >= b.fromSec && t <= b.toSec) ?? clip.beats.at(-1)! : null;
   const k = beat && beat.toSec > beat.fromSec ? (t - beat.fromSec) / (beat.toSec - beat.fromSec) : 0;
-  const subject = beat?.subject ? { x: beat.x0 + (beat.x1 - beat.x0) * Math.min(1, Math.max(0, k)), onSite: beat.onSite ?? false, label: beat.label } : null;
+  const walking = !!beat && beat.x1 !== beat.x0 && k > 0 && k < 1;
+  const subject = beat?.subject
+    ? { x: beat.x0 + (beat.x1 - beat.x0) * Math.min(1, Math.max(0, k)), onSite: beat.onSite ?? false, label: beat.label, heading: (walking ? Math.sign(beat.x1 - beat.x0) : 0) as -1 | 0 | 1, gaitT: t }
+    : null;
   const clipStart = alert.atMin * 60 + (phase === "pre" ? -(clip?.lengthSec ?? 0) : 0);
   const camName = site.cameras.find((c) => c.id === alert.cameraId)?.name ?? alert.cameraId;
 
@@ -632,8 +635,8 @@ function EventClip({ alert, site, view, clock, send, offSite }: { alert: Alert; 
           {!clip || loading ? (
             <p className="text-[32px] font-bold text-white">{!clip ? "No Footage Available" : "Waiting For Footage..."}</p>
           ) : (
-            <div className="h-full">
-              <ImmixCamera media={view.media?.[alert.cameraId]} cameraLabel={camName} siteId={site.id} when={wall(view.scenario.startLocal, clipStart + t)} subject={subject} offSiteCamera={offSite} title={`Event clip, ${phase === "pre" ? "pre-alarm" : "post-alarm"}`} />
+            <div className="h-full w-full">
+              <ImmixCamera media={view.media?.[alert.cameraId]} cameraLabel={camName} siteId={site.id} when={wall(view.scenario.startLocal, clipStart + t)} subject={subject} analytics offSiteCamera={offSite} title={`Event clip, ${phase === "pre" ? "pre-alarm" : "post-alarm"}`} />
             </div>
           )}
           <p className="sr-only" aria-live="polite">{!playing && beat ? beat.label : ""}</p>
@@ -795,7 +798,7 @@ export function MultiviewGrid({ site, scn, state, clock, now, media, offSiteCams
             {ecareFailed(c.id) ? (
               <p className="text-[11px] text-white">Connecting to device...</p>
             ) : (
-              <div className="h-full"><ImmixCamera media={media?.[c.id]} cameraLabel={c.name} siteId={site.id} when={now} subject={subjectOnCamera(scn, state, c.id, clock)} offSiteCamera={offSiteCams.has(c.id)} title={`MultiView ${c.name}`} compact /></div>
+              <div className="h-full w-full"><ImmixCamera media={media?.[c.id]} cameraLabel={c.name} siteId={site.id} when={now} subject={subjectOnCamera(scn, state, c.id, clock)} offSiteCamera={offSiteCams.has(c.id)} title={`MultiView ${c.name}`} compact /></div>
             )}
           </div>
           <div className="flex items-center gap-2 px-1 py-1 text-white">
