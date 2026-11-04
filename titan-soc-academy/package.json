@@ -14,6 +14,7 @@
     "content:import": "tsx scripts/import-powerapps.ts",
     "media:import": "node scripts/import-immix-media.mjs",
     "media:walkthroughs": "node scripts/import-walkthroughs.mjs",
+    "media:videos": "node scripts/import-videos.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "node tests/e2e/run-e2e.mjs",

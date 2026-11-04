@@ -199,6 +199,30 @@ export async function run(base) {
     await page.reload();
   });
 
+  await test("training videos: catalog-only, signed-in only, seekable; installed ones play in the lesson", async () => {
+    const u = (f) => `${base}/api/media/video/${encodeURIComponent(f)}`;
+    const vids = [...new Set(catalog.media.map((m) => m.filename).filter((f) => /\.mp4$/i.test(f)))];
+    const anon = await browser.newContext();
+    assert((await anon.request.get(u(vids[0] ?? "x.mp4"))).status() === 401, "video served without sign-in");
+    await anon.close();
+    await signIn(page, base, "Morgan Ellis");
+    for (const bad of ["../../.env", "not-in-catalog.mp4"]) assert((await page.request.get(u(bad))).status() === 404, `${bad} should be 404`);
+    const installed = vids.filter((f) => existsSync(`content-import/media/videos/${f}`));
+    if (!installed.length) { console.log("      (no videos installed — playback skipped)"); return; }
+    const r = await page.request.get(u(installed[0]), { headers: { Range: "bytes=0-99" } });
+    assert(r.status() === 206 && (await r.body()).length === 100, "range request not honoured");
+    const m = catalog.media.find((x) => x.filename === installed[0]);
+    await page.goto(`${base}/academy/${m.moduleId}`);
+    const play = page.getByRole("button", { name: `Play ${installed[0].replace(/\.mp4$/i, "")}` });
+    for (let g = 0; g < 30 && !(await play.count()); g++) {
+      if (await page.getByRole("button", { name: "Check answer" }).count()) await walkPractice(page);
+      await page.getByRole("button", { name: /^(Continue|Next|Acknowledge)/ }).first().click();
+      await page.waitForTimeout(150);
+    }
+    await play.first().click();
+    await page.waitForFunction(() => { const v = document.querySelector("video"); return v && v.readyState >= 2; }, null, { timeout: 15000 });
+  });
+
   await test("supervisor sees the operator's graded answers", async () => {
     await signIn(page, base, "Morgan Ellis");
     await page.getByRole("link", { name: /Jordan Reyes/ }).click();

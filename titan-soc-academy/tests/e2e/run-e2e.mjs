@@ -41,7 +41,16 @@ if (!existsSync(".next/BUILD_ID") || process.env.E2E_REBUILD) {
 }
 
 console.log(`▶ Starting app on port ${PORT}`);
-const server = spawn(process.platform === "win32" ? "npx.cmd" : "npx", ["next", "start", "--port", PORT], { env, stdio: "pipe", shell: process.platform === "win32" });
+const server = spawn(process.platform === "win32" ? "npx.cmd" : "npx", ["next", "start", "--port", PORT], { env, stdio: "pipe", shell: process.platform === "win32", detached: process.platform !== "win32" });
+/** Stops npx AND the Next.js server it started (killing npx alone leaves the server holding the port). */
+function stopServer() {
+  try {
+    if (process.platform === "win32") execSync(`taskkill /pid ${server.pid} /T /F`, { stdio: "ignore" });
+    else process.kill(-server.pid, "SIGTERM");
+  } catch {
+    server.kill();
+  }
+}
 let serverLog = "";
 server.stdout.on("data", (d) => (serverLog += d));
 server.stderr.on("data", (d) => (serverLog += d));
@@ -62,7 +71,7 @@ try {
 } catch (e) {
   console.error(e);
 } finally {
-  server.kill();
+  stopServer();
   if (code !== 0) console.log("\n--- server log (tail) ---\n" + serverLog.split("\n").slice(-40).join("\n"));
 }
 process.exit(code);

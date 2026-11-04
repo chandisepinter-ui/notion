@@ -25,7 +25,7 @@ export type ClientWalkthrough = Omit<Walkthrough, "screens"> & { done: boolean; 
 export type CourseStepView =
   | { kind: "prime"; id: string; stage: Stage; title: string; body: string }
   | { kind: "cards"; id: string; stage: Stage; title: string; card: LearnCard & { sourceTitle: string | null; rulings: Ruling[] }; index: number; total: number }
-  | { kind: "media"; id: string; stage: Stage; title: string; body: string; files: { name: string; approved: boolean }[]; walkthroughs: ClientWalkthrough[] }
+  | { kind: "media"; id: string; stage: Stage; title: string; body: string; files: { name: string; approved: boolean; src: string | null }[]; walkthroughs: ClientWalkthrough[] }
   | { kind: "info" | "supervisor-gate"; id: string; stage: Stage; title: string; cards: { title: string; body: string }[] }
   | { kind: "simulation"; id: string; stage: Stage; title: string; scenarioId: string; scenarioTitle: string; brief: string; playable: boolean; done: boolean; lastScore: number | null; lastPassed: boolean | null }
   | { kind: "pending-source"; id: string; stage: Stage; title: string; body: string; acknowledged: boolean }
@@ -75,7 +75,7 @@ export type CourseView = {
   canGoBack: boolean;
 };
 
-type Ctx = { sources: SourceRecord[]; approvedMedia: Set<string>; rulings?: Map<string, Ruling>; playableSims?: Set<string>; walkthroughs?: Walkthrough[] };
+type Ctx = { sources: SourceRecord[]; approvedMedia: Set<string>; rulings?: Map<string, Ruling>; playableSims?: Set<string>; walkthroughs?: Walkthrough[]; installedVideos?: Set<string> };
 
 /** Walkthroughs are offered on the module's last media step ("Watch again — now spot each step"). */
 export function walkthroughStepId(mod: CourseModule): string | null {
@@ -134,7 +134,10 @@ export function buildCourseView(
     case "media":
       v = {
         kind: "media", id: step.id, stage: step.stage, title: step.title, body: step.body,
-        files: step.files.map((f) => ({ name: f, approved: ctx.approvedMedia.has(f) })),
+        files: step.files.map((f) => {
+          const installed = !!ctx.installedVideos?.has(f);
+          return { name: f, approved: installed || ctx.approvedMedia.has(f), src: installed ? `/api/media/video/${encodeURIComponent(f)}` : null };
+        }),
         walkthroughs: step.id === walkthroughStepId(mod)
           ? (ctx.walkthroughs ?? []).map((w) => ({
               ...w,

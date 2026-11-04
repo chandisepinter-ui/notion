@@ -130,6 +130,20 @@ function main() {
   // Stages handled by the engine itself rather than authored rows.
   const engineStages = new Set(["REMEDIATION", "RETEST", "COMPLETE", "FEEDBACK"]);
 
+  // Owner text corrections: imported wording that contradicts a later owner decision.
+  const corrections = [
+    {
+      decision: "Day 7 is an 8-hour simulated validation shift (owner decision 2026-11-04)",
+      from: "Day 7 is live production observed by your supervisor.",
+      to: "Day 7 is an eight-hour simulated shift that your supervisor reviews with you.",
+    },
+  ];
+  for (const c of corrections) {
+    const hits = lessons.filter((l) => l.Body?.includes(c.from) || l.Title?.includes(c.from));
+    hits.forEach((l) => { l.Body = l.Body.split(c.from).join(c.to); l.Title = l.Title.split(c.from).join(c.to); });
+    console.log(hits.length ? `ℹ Corrected ${hits.length} lesson text(s): ${c.decision}` : `⚠ Text correction no longer matches (check the source): ${c.decision}`);
+  }
+
   const modules: CourseModule[] = [];
   const retired: CourseCatalog["retired"] = [];
   for (const m of modulesCsv.filter((x) => bool(x.Active))) {

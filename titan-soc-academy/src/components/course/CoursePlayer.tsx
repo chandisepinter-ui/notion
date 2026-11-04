@@ -18,6 +18,7 @@ import { StageTracker } from "@/components/lesson/Feedback";
 import { ContentStatusBadge } from "./ContentStatus";
 import { QuestionCard } from "./QuestionCard";
 import { WalkthroughList } from "./WalkthroughPlayer";
+import { VideoList } from "./VideoList";
 import { startSimRun } from "@/lib/sim/actions";
 import { cn } from "@/lib/cn";
 
@@ -197,19 +198,7 @@ function Step({ view, s, run, pending, next, back }: { view: CourseView; s: Cour
       return (
         <article className="titan-panel p-6 sm:p-8">
           {s.body && <Body text={s.body.replace(/^NEEDS_RECORDING:\s*/, "")} />}
-          <ul className="mt-5 grid gap-2">
-            {s.files.length === 0 && (
-              <li className="flex items-center gap-3 rounded-xl border border-dashed border-line-strong px-4 py-3 text-sm text-fg-muted"><Film aria-hidden className="size-4" /> No approved recording exists for this module yet.</li>
-            )}
-            {s.files.map((f) => (
-              <li key={f.name} className="flex flex-wrap items-center gap-3 rounded-xl border border-line px-4 py-3 text-sm">
-                <Film aria-hidden className="size-4 text-fg-subtle" />
-                <span className="flex-1 text-fg">{f.name.replace(/\.mp4$/i, "")}</span>
-                <Badge tone={f.approved ? "success" : "planned"}>{f.approved ? "Approved" : "Awaiting review & sanitization"}</Badge>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-sm text-fg-subtle">Training videos are shown only after they are reviewed, sanitized and approved. You can continue without them.</p>
+          <VideoList files={s.files} />
           <WalkthroughList items={s.walkthroughs} pending={pending} onDone={(id, misses) => run(() => actions.courseWalkthroughDone(view.moduleKey, s.id, id, misses))} />
           <NavBar onBack={back} canBack={view.canGoBack} onNext={next} pending={pending} />
         </article>

@@ -99,6 +99,20 @@ After dark (scenario time 18:00–07:00) day stills switch to infrared black-and
 do. To pin a specific still to a camera, create `content-import\media\immix\cameras.json`, e.g.
 `{ "SITE-ID/CAM 02": "mv-04.jpg" }`. Without stills the simulator uses drawn scenes.
 
+### Training videos (local only)
+
+Owner decision (2026-11-04): Titan's own how-to videos (the Power Apps Media list, 20 files) are
+approved for signed-in Academy users. They are never stored on GitHub. To install them, point the
+installer at the synced OneDrive/SharePoint folder that holds them (subfolders are searched):
+
+```
+npm run media:videos -- "<OneDrive>\\Dispatch Center\\How To Videos"
+```
+
+Installed videos play inside the module step (with seeking); any not installed show
+"Not installed on this computer" and the trainee can still continue. Only file names in the
+imported Media list are ever served. To withdraw a video, delete it from `content-import\\media\\videos`.
+
 ### Guided IMMIX walkthroughs (local only)
 
 The 30 click-through walkthroughs from the Power Apps build (161 frames, Days 2–3) appear on each
@@ -170,6 +184,7 @@ text size and motion are under **Profile & Preferences**.
 | `npm run check` | Type-check + unit tests of the lesson engine |
 | `npm run content:import` | Imports the Titan curriculum from `content-import\powerapps` (see above) |
 | `npm run media:import` | Builds the IMMIX camera stills from the reference screenshots (see IMMIX simulator) |
+| `npm run media:videos -- "<folder>"` | Installs the Titan how-to training videos (owner-approved, local only) |
 | `npm run media:walkthroughs -- "<folder>"` | Installs the guided IMMIX walkthroughs from the OneDrive `scenario_assets` folder |
 | `npm run test:e2e` | Full browser test of every role and the practice lab, using a separate throwaway database and no Titan content. First run `npx playwright install chromium` once. |
 | `npm run test:content` | Browser check of the imported Titan content: every module opens and every step works |
