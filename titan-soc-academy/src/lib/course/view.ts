@@ -23,7 +23,7 @@ export type CourseStepView =
   | { kind: "cards"; id: string; stage: Stage; title: string; card: LearnCard & { sourceTitle: string | null; rulings: Ruling[] }; index: number; total: number }
   | { kind: "media"; id: string; stage: Stage; title: string; body: string; files: { name: string; approved: boolean }[] }
   | { kind: "info" | "supervisor-gate"; id: string; stage: Stage; title: string; cards: { title: string; body: string }[] }
-  | { kind: "simulation"; id: string; stage: Stage; title: string; scenarioId: string; scenarioTitle: string; brief: string }
+  | { kind: "simulation"; id: string; stage: Stage; title: string; scenarioId: string; scenarioTitle: string; brief: string; playable: boolean; done: boolean; lastScore: number | null; lastPassed: boolean | null }
   | { kind: "pending-source"; id: string; stage: Stage; title: string; body: string; acknowledged: boolean }
   | {
       kind: "practice";
@@ -50,6 +50,8 @@ export type CourseStepView =
       result: MasteryResult | null;
       remediationReviewed: boolean;
       simulationChecks: string[];
+      /** Simulator scenarios that count toward this mastery check. */
+      simRequired: { id: string; label: string; passed: boolean; lastScore: number | null }[];
     };
 
 export type CourseView = {
@@ -69,7 +71,7 @@ export type CourseView = {
   canGoBack: boolean;
 };
 
-type Ctx = { sources: SourceRecord[]; approvedMedia: Set<string>; rulings?: Map<string, Ruling> };
+type Ctx = { sources: SourceRecord[]; approvedMedia: Set<string>; rulings?: Map<string, Ruling>; playableSims?: Set<string> };
 
 function clientQuestion(q: Question, attempt: number, ctx: Ctx): ClientQuestion {
   return {
@@ -127,7 +129,13 @@ export function buildCourseView(
       v = { kind: step.kind, id: step.id, stage: step.stage, title: step.title, cards: step.cards };
       break;
     case "simulation":
-      v = { kind: "simulation", id: step.id, stage: step.stage, title: step.title, scenarioId: step.scenarioId, scenarioTitle: step.scenarioTitle, brief: step.brief };
+      v = {
+        kind: "simulation", id: step.id, stage: step.stage, title: step.title, scenarioId: step.scenarioId, scenarioTitle: step.scenarioTitle, brief: step.brief,
+        playable: !!ctx.playableSims?.has(step.scenarioId),
+        done: !!s.sims?.[step.scenarioId]?.guidedDone,
+        lastScore: s.sims?.[step.scenarioId]?.lastScore ?? null,
+        lastPassed: s.sims?.[step.scenarioId]?.lastPassed ?? null,
+      };
       break;
     case "pending-source":
       v = { kind: "pending-source", id: step.id, stage: step.stage, title: step.title, body: step.body, acknowledged: s.status === "PENDING_SOURCE" };
@@ -164,6 +172,10 @@ export function buildCourseView(
         result: s.mastery.result ?? null,
         remediationReviewed: s.mastery.remediationReviewed,
         simulationChecks: step.simulationChecks,
+        simRequired: (step.simulationScenarioIds ?? [])
+          .map((id, i) => ({ id, label: step.simulationChecks[i] ?? id }))
+          .filter((x) => ctx.playableSims?.has(x.id))
+          .map((x) => ({ ...x, passed: !!s.sims?.[x.id]?.masteryPassed, lastScore: s.sims?.[x.id]?.lastScore ?? null })),
       };
       break;
   }
@@ -181,7 +193,7 @@ export function buildCourseView(
     totalSteps: mod.steps.length,
     stages,
     step: v,
-    canAdvance: canAdvanceCourse(mod, s),
+    canAdvance: canAdvanceCourse(mod, s, { playable: ctx.playableSims ?? new Set() }),
     canGoBack: step.kind !== "mastery" && (s.stepIndex > 0 || (step.kind === "cards" && (s.cardIndex[step.id] ?? 0) > 0)),
   };
 }

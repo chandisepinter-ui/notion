@@ -71,9 +71,28 @@ What the import does with your content:
 * Each module shows its source status (*Source-grounded · pending approval*, *Partial source*, *Needs source*).
 * Training videos appear only once marked approved in `SOC_Academy_Media.csv` (none are yet).
 * Modules without approved graded content (e.g. *Living the Motto*) record **Completed — pending source**.
-* Simulator steps (S01–S10) are shown as *Planned · Phase 3* until the simulator is built.
+* Simulator scenarios S01–S10 are imported too. The IMMIX workstation runs the ones that need only
+  Computer 1 (currently **S01, S02, S04**); the rest show *Needs Computer 2* until HubSpot, phones,
+  TrackTik, radio and Outlook/Teams are simulated.
 * **Day 7 is the eight-hour simulated validation shift** (owner decision, 2026-11-04). The Power Apps
   live-shift module (D7M01) is set aside by the import; the simulated shift arrives with the simulator.
+
+## IMMIX simulator (Computer 1)
+
+Open **Simulator** in the menu. Each scenario runs on a simulated IMMIX workstation laid out like the
+real console: alarm queue → **Process Alarm** → event screen with the event clip (pre/post-alarm),
+camera list and audio talk-down, live view, the site tabs (Alarms, Current Events, Previous Events,
+Arming/Disarming, Notes, Maps, Scripts), **Details**, **MultiView**, **Park Event** and **Close Event**.
+
+* Time runs at real speed. *Skip ahead* jumps to the next scheduled event (e.g. an E-CARE reconnect);
+  it is disabled while MultiView is open, because absence must be watched live.
+* Clips count as reviewed only when played start to finish at 1.00x.
+* Runs are scored against the scenario's own criteria: 90% with no critical misses. Checks that need
+  Computer 2 are listed as *not evaluated* and left out of the score.
+* **Practice** (from the Simulator page) and **guided** runs (from a module's practice step) show the
+  tasks and hints. **Mastery** runs (from a mastery check) show neither; a module whose mastery check
+  lists a playable scenario requires a passing mastery run before the questions can be submitted.
+* A built-in **fictional practice scenario** works on any computer, with or without imported content.
 
 ## Deciding source conflicts
 
@@ -112,6 +131,9 @@ text size and motion are under **Profile & Preferences**.
 | `npm run content:import` | Imports the Titan curriculum from `content-import\powerapps` (see above) |
 | `npm run test:e2e` | Full browser test of every role and the practice lab, using a separate throwaway database and no Titan content. First run `npx playwright install chromium` once. |
 | `npm run test:content` | Browser check of the imported Titan content: every module opens and every step works |
+
+The full browser suite includes a real-time simulator run (about 3 minutes, because the two-minute
+MultiView verification is watched live).
 | `npm run build` then `npm start` | Production-style build and run |
 
 ---

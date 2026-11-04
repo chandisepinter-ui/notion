@@ -280,3 +280,30 @@ export const contentDecisions = sqliteTable("content_decisions", {
   decidedById: text("decided_by_id").notNull().references(() => users.id),
   createdAt: createdAt(),
 });
+
+/* ------------------------------------------------------------------ */
+/* Simulator runs                                                      */
+/* ------------------------------------------------------------------ */
+
+export const simRuns = sqliteTable(
+  "sim_runs",
+  {
+    id: id(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    scenarioId: text("scenario_id").notNull(),
+    /** practice | guided | mastery */
+    mode: text("mode").notNull(),
+    /** Academy module that launched the run (returns there when finished). */
+    moduleKey: text("module_key"),
+    /** IN_PROGRESS | COMPLETED */
+    status: text("status").notNull().default("IN_PROGRESS"),
+    stateJson: text("state_json").notNull(),
+    resultJson: text("result_json"),
+    scorePercent: integer("score_percent"),
+    passed: integer("passed", { mode: "boolean" }),
+    startedAt: createdAt(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
+    completedAt: integer("completed_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [index("sim_runs_user").on(t.userId)],
+);

@@ -381,6 +381,56 @@ export async function run(base) {
     assert(focused?.includes("Skip to main content"), `first tab stop was "${focused}"`);
   });
 
+  console.log("\nIMMIX simulator (fictional practice scenario, real-time)");
+  await test("simulator: complete the talkdown scenario correctly and score 100%", async () => {
+    await signIn(page, base, "Jordan Reyes");
+    await page.goto(`${base}/simulator`);
+    await page.locator("li", { hasText: "PRACTICE-TALKDOWN" }).getByRole("button", { name: "Start practice" }).click();
+    await page.waitForURL(/\/sim\//);
+    await page.getByRole("button", { name: /PROCESS ALARM/ }).click();
+    // Review both clips at 1.00x, start to finish.
+    for (const phase of ["Pre-alarm", "Post-alarm"]) {
+      await page.getByRole("button", { name: phase }).click();
+      await page.getByRole("button", { name: "Play clip" }).click();
+      await page.getByRole("button", { name: "Play clip" }).waitFor({ timeout: 20000 });
+    }
+    await page.getByRole("tab", { name: /Notes/ }).click();
+    await page.getByRole("tab", { name: "Maps" }).click();
+    await page.waitForTimeout(800);
+    // Progress persists across a reload.
+    await page.reload();
+    await page.getByRole("tab", { name: "Current Events" }).click();
+    await page.getByText("Map viewed").waitFor();
+    await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze().then((r) => {
+      const bad = r.violations.filter((v) => ["serious", "critical"].includes(v.impact));
+      assert(!bad.length, "axe: " + bad.map((v) => `${v.id} ${v.nodes[0]?.target}`).join("; "));
+    });
+    await page.getByRole("button", { name: /Audio — talk-down/ }).click();
+    await page.getByRole("button", { name: "Speak", exact: true }).click();
+    await page.getByRole("button", { name: "MultiView" }).click();
+    await page.getByRole("dialog", { name: "MultiView" }).waitFor();
+    await page.screenshot({ path: "tests/e2e/screenshots/15-sim-multiview.png" });
+    // Watch until the subject has been gone from every camera for 2 full minutes (30 s + 120 s).
+    await page.waitForTimeout(156000);
+    await page.getByRole("button", { name: "Close MultiView" }).click();
+    await page.getByRole("button", { name: "Close Event" }).click();
+    await page.getByLabel("Outcome:").selectOption("Talkdown Successful");
+    await page.getByLabel("Note:").fill("Site script talkdown played on CAM 04 Speaker. MultiView: subject gone from all cameras for 2 minutes.");
+    await page.getByRole("button", { name: "Ok" }).click();
+    await page.getByRole("button", { name: "Finish & score" }).click();
+    await page.getByText("Passed", { exact: true }).waitFor();
+    await page.getByText("Score 100%").waitFor();
+    await page.screenshot({ path: "tests/e2e/screenshots/16-sim-result.png", fullPage: true });
+  });
+
+  await test("simulator: answer keys are not sent to the browser", async () => {
+    await page.goto(`${base}/simulator`);
+    await page.locator("li", { hasText: "PRACTICE-TALKDOWN" }).getByRole("button", { name: "Start practice" }).click();
+    await page.waitForURL(/\/sim\//);
+    const html = await page.content();
+    assert(!html.includes("acceptedOutcomes") && !html.includes("Lighthouse") && !html.includes("ABSENCE_VERIFIED"), "scenario answer data leaked");
+  });
+
   await test("no uncaught browser errors during the run", async () => {
     const real = consoleErrors.filter((e) => !/favicon|404 \(Not Found\)|Failed to load resource/.test(e));
     assert(real.length === 0, real.slice(0, 5).join(" | "));

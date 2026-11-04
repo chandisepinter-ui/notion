@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BookOpen, Gamepad2, Gavel, Gauge, History, Home, KeyRound, Layers, LayoutGrid, RefreshCw, Route, ScrollText, Settings, Shield, UserCog, Users,
+  BookOpen, Gamepad2, Gavel, MonitorPlay, Gauge, History, Home, KeyRound, Layers, LayoutGrid, RefreshCw, Route, ScrollText, Settings, Shield, UserCog, Users,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -10,7 +10,7 @@ import type { NavSection } from "./nav";
 
 const ICONS: Record<string, LucideIcon> = {
   home: Home, route: Route, gauge: Gauge, history: History, refresh: RefreshCw, grid: LayoutGrid, gamepad: Gamepad2,
-  book: BookOpen, users: Users, shield: Shield, "user-cog": UserCog, key: KeyRound, layers: Layers, scroll: ScrollText, settings: Settings, gavel: Gavel,
+  book: BookOpen, users: Users, shield: Shield, "user-cog": UserCog, key: KeyRound, layers: Layers, scroll: ScrollText, settings: Settings, gavel: Gavel, monitor: MonitorPlay,
 };
 
 export function NavLinks({ sections, onNavigate }: { sections: NavSection[]; onNavigate?: () => void }) {

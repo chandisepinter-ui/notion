@@ -10,6 +10,7 @@ export const NAV: NavSection[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "home", permission: "academy.access" },
       { href: "/academy", label: "Initial Academy", icon: "route", permission: "academy.access" },
+      { href: "/simulator", label: "Simulator", icon: "monitor", permission: "academy.access" },
       { href: "/progress", label: "Progress & Competency", icon: "gauge", permission: "academy.access" },
       { href: "/history", label: "Training History", icon: "history", permission: "academy.access" },
       { href: "/refreshers", label: "Refreshers", icon: "refresh", permission: "academy.access" },

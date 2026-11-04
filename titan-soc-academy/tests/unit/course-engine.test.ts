@@ -125,3 +125,32 @@ describe("mastery", () => {
     expect(() => submitMastery(mod, saveMasteryAnswer(mod, toMastery(), "M1", [1]))).toThrow(/every question/i);
   });
 });
+
+describe("simulator gating", () => {
+  const simMod: CourseModule = {
+    ...mod,
+    key: "TST02",
+    steps: [
+      { id: "s", stage: "practice", kind: "simulation", title: "Sim", scenarioId: "SX", scenarioTitle: "X", brief: "" },
+      { id: "m", stage: "verify", kind: "mastery", title: "Mastery", passPercent: 90, simulationChecks: ["SX · X"], simulationScenarioIds: ["SX"], items: [q("M1", "mcq", [1])] },
+    ],
+  };
+  const playable = { playable: new Set(["SX"]) };
+  it("a playable simulator step must be completed before continuing; unplayable ones never block", () => {
+    const s = initialCourseState();
+    expect(() => advanceCourse(simMod, s, playable)).toThrow(LessonError);
+    expect(advanceCourse(simMod, s, { playable: new Set() }).state.stepIndex).toBe(1);
+    const done = { ...s, sims: { SX: { guidedDone: true } } };
+    expect(advanceCourse(simMod, done, playable).state.stepIndex).toBe(1);
+  });
+  it("mastery requires a passed simulator check when the scenario is playable", () => {
+    let s = advanceCourse(simMod, { ...initialCourseState(), sims: { SX: { guidedDone: true } } }, playable).state;
+    s = saveMasteryAnswer(simMod, s, "M1", [1]);
+    const without = submitMastery(simMod, s, 0, playable);
+    expect(without.result.scorePercent).toBe(100);
+    expect(without.result.passed).toBe(false);
+    const withSim = submitMastery(simMod, { ...s, sims: { SX: { guidedDone: true, masteryPassed: true } } }, 0, playable);
+    expect(withSim.result.passed).toBe(true);
+    expect(submitMastery(simMod, s, 0, { playable: new Set() }).result.passed).toBe(true);
+  });
+});

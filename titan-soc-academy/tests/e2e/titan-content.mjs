@@ -105,7 +105,7 @@ export async function run(base) {
       const r = await page.goto(`${base}/academy/${m.key}`);
       if (r.status() !== 200) { failures.push(`${m.key}: HTTP ${r.status()}`); continue; }
       for (let guard = 0; guard < 80; guard++) {
-        if (await page.getByText(/Submit mastery check|Answer all \d+ to submit|Your supervisor completes and signs|Completed — pending source/).count()) break;
+        if (await page.getByText(/Submit mastery check|Answer all \d+ to submit|Pass the simulator check to submit|Your supervisor completes and signs|Completed — pending source|Finish one simulator run to continue/).count()) break;
         if (await page.getByRole("button", { name: "Check answer" }).count()) {
           await walkPractice(page);
         }

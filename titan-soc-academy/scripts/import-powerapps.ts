@@ -16,6 +16,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { loadEnvFile } from "node:process";
 import type { CourseCatalog, CourseModule, CourseStep, Question } from "../src/lib/course/types";
 import type { Stage } from "../src/lib/academy/types";
+import type { SimScenario } from "../src/lib/sim/types";
 import { seedCourseCatalog } from "./lib/seed-course";
 
 if (existsSync(".env")) loadEnvFile(".env");
@@ -183,8 +184,10 @@ function main() {
           if (r.Stage === "MASTERY") {
             const l = last();
             const label = `${r.ScenarioID} · ${info?.title ?? "Scenario"}`;
-            if (l?.kind === "mastery") l.simulationChecks.push(label);
-            else steps.push({ id: `${m.ModuleID}-MASTERY`, stage, kind: "mastery", title: "Mastery check", items: [], passPercent: PASS_PERCENT, simulationChecks: [label] });
+            if (l?.kind === "mastery") {
+              l.simulationChecks.push(label);
+              (l.simulationScenarioIds ??= []).push(r.ScenarioID);
+            } else steps.push({ id: `${m.ModuleID}-MASTERY`, stage, kind: "mastery", title: "Mastery check", items: [], passPercent: PASS_PERCENT, simulationChecks: [label], simulationScenarioIds: [r.ScenarioID] });
           } else {
             steps.push({ id: r.ContentID, stage, kind: "simulation", title: "Simulator practice", scenarioId: r.ScenarioID, scenarioTitle: info?.title ?? r.ScenarioID, brief: info?.brief ?? "" });
           }
@@ -228,7 +231,25 @@ function main() {
     });
   }
 
+  /* ---------------- Simulator scenarios & IMMIX settings ---------------- */
+  const simScenarios = scenarios
+    .map((sc) => json<SimScenario | null>(sc.ManifestJSON, null))
+    .filter((x): x is SimScenario => !!x && Array.isArray(x.criteria));
+  // Close-out outcomes: the live IMMIX list recorded in the conflicts log (C12), plus every
+  // outcome a scenario accepts. Replace with an approved list once C12 is decided.
+  const c12 = conflictsCsv.find((c) => c.ConflictID === "C12");
+  const liveList = (c12?.AuthorityA.split(":")[1] ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  const accepted = simScenarios.flatMap((x) => x.alerts.flatMap((a) => a.truth?.acceptedOutcomes ?? []));
+  const outcomes = [...new Set([...liveList, ...accepted])].sort((a, b) => a.localeCompare(b));
+  // Default talkdown: the quoted script on the "Default script" learn card.
+  const scriptCard = lessons.find((l) => /default script/i.test(l.Title) && /"[^"]{20,}"/.test(l.Body));
+  const defaultTalkdown = scriptCard?.Body.match(/"([^"]{20,})"/)?.[1] ?? null;
+  if (!liveList.length) problems.push("IMMIX outcome list not found (conflict C12); simulator will use scenario outcomes only");
+  if (!defaultTalkdown) problems.push("Default talkdown script card not found; talkdown checks will accept any filled-in script");
+
   const catalog: CourseCatalog = {
+    scenarios: simScenarios,
+    immix: { outcomes, defaultTalkdown },
     generatedAt: new Date().toISOString(),
     catalogVersion: modulesCsv[0]?.CatalogVersion ?? "",
     modules,
@@ -256,6 +277,7 @@ function main() {
   const qCount = modules.reduce((n, m) => n + m.steps.reduce((k, s) => k + (s.kind === "mastery" || s.kind === "practice" ? s.items.length : 0), 0), 0);
   const scored = modules.reduce((n, m) => n + m.steps.reduce((k, s) => k + (s.kind === "mastery" ? s.items.filter((i) => i.graded).length : 0), 0), 0);
   console.log(`✔ ${modules.length} modules · ${qCount} questions (${scored} scored in mastery) · ${catalog.sources.length} sources · ${catalog.conflicts.length} conflicts (${openConflicts.size} open) · ${catalog.day7Skills.length} Day 7 skills`);
+  console.log(`✔ ${simScenarios.length} simulator scenarios · ${outcomes.length} IMMIX outcomes · default talkdown ${defaultTalkdown ? "found" : "missing"}`);
   console.log(`✔ Wrote ${OUT}`);
   retired.forEach((r) => console.log(`ℹ Set aside ${r.key} (${r.title}): ${r.reason}`));
   if (problems.length) {

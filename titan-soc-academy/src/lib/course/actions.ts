@@ -7,7 +7,7 @@
 import { revalidatePath } from "next/cache";
 import { assertPermission } from "@/lib/auth/guards";
 import { PERMISSIONS } from "@/lib/auth/permissions";
-import { courseViewFor, loadCourse } from "./service";
+import { courseViewFor, loadCourse, playableSimIds } from "./service";
 import { persistProgress } from "@/lib/academy/service";
 import type { AttemptRecord, CompetencyChange } from "@/lib/academy/types";
 import * as engine from "./engine";
@@ -55,7 +55,7 @@ async function run(key: string, op: Op): Promise<CourseActionResult> {
 const str = (v: unknown) => (typeof v === "string" ? v.slice(0, 80) : "");
 
 export async function courseContinue(key: string) {
-  return run(key, (c, s) => engine.advanceCourse(c, s));
+  return run(key, (c, s) => engine.advanceCourse(c, s, { playable: playableSimIds() }));
 }
 export async function courseBack(key: string) {
   return run(key, (c, s) => ({ state: engine.backCourse(c, s) }));
@@ -71,7 +71,7 @@ export async function courseSaveMastery(key: string, itemId: string, response: u
 }
 export async function courseSubmitMastery(key: string) {
   return run(key, (c, s) => {
-    const r = engine.submitMastery(c, s);
+    const r = engine.submitMastery(c, s, Date.now(), { playable: playableSimIds() });
     return { state: r.state, attempts: r.attempts, changes: r.changes, scorePercent: r.result.scorePercent };
   });
 }

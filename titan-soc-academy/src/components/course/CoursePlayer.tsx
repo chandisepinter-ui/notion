@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/Badge";
 import { StageTracker } from "@/components/lesson/Feedback";
 import { ContentStatusBadge } from "./ContentStatus";
 import { QuestionCard } from "./QuestionCard";
+import { startSimRun } from "@/lib/sim/actions";
 import { cn } from "@/lib/cn";
 
 type Run = (fn: () => Promise<CourseActionResult>, opts?: { scrollTop?: boolean }) => void;
@@ -237,18 +238,32 @@ function Step({ view, s, run, pending, next, back }: { view: CourseView; s: Cour
       return (
         <article className="titan-panel p-6 sm:p-8">
           <div className="flex items-start gap-4">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-surface-3 text-fg-subtle"><MonitorPlay aria-hidden className="size-5" /></span>
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent"><MonitorPlay aria-hidden className="size-5" /></span>
             <div>
-              <p className="titan-eyebrow">Scenario {s.scenarioId}</p>
+              <p className="titan-eyebrow">Simulator · scenario {s.scenarioId}</p>
               <p className="mt-1 text-lg font-semibold text-fg">{s.scenarioTitle}</p>
               {s.brief && <p className="mt-2 text-fg-muted">{s.brief}</p>}
             </div>
           </div>
-          <div className="mt-5 flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-line-strong p-4 text-sm text-fg-muted">
-            <Badge tone="planned">Planned · Phase 3</Badge>
-            The multi-application simulator for this scenario is not built in the new platform yet. Continue to the next step.
-          </div>
-          <NavBar onBack={back} canBack={view.canGoBack} onNext={next} pending={pending} />
+          {s.playable ? (
+            <div className="mt-5 grid gap-3 rounded-2xl border border-line bg-surface-2/60 p-4">
+              <p className="text-sm text-fg-muted">Work this alert on the simulated IMMIX workstation. Tasks and hints are shown; your run is scored, but practice does not count toward mastery.</p>
+              {s.done && <p className="text-sm"><Badge tone={s.lastPassed ? "success" : "warning"}>Last run {s.lastScore}% · {s.lastPassed ? "passed" : "not passed"}</Badge></p>}
+              <form action={startSimRun}>
+                <input type="hidden" name="scenarioId" value={s.scenarioId} />
+                <input type="hidden" name="mode" value="guided" />
+                <input type="hidden" name="moduleKey" value={view.moduleKey} />
+                <Button type="submit" size="lg" variant={s.done ? "secondary" : "primary"}><MonitorPlay aria-hidden className="size-4" /> {s.done ? "Practice again" : "Open the simulator"}</Button>
+              </form>
+              {!s.done && <p className="text-xs text-fg-subtle">Finish one simulator run to continue.</p>}
+            </div>
+          ) : (
+            <div className="mt-5 flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-line-strong p-4 text-sm text-fg-muted">
+              <Badge tone="planned">Needs Computer 2</Badge>
+              This scenario also uses Computer 2 apps (HubSpot, TrackTik, phones, radio or Outlook/Teams), which are not simulated yet. Continue to the next step.
+            </div>
+          )}
+          <NavBar onBack={back} canBack={view.canGoBack} onNext={next} canNext={view.canAdvance} pending={pending} />
         </article>
       );
     case "pending-source":
@@ -321,7 +336,8 @@ function Mastery({ view, s, run, pending }: { view: CourseView; s: Extract<Cours
   if (s.result) return <MasteryResultView view={view} s={s} run={run} pending={pending} />;
   const done = (id: string, type: string, n: number) => (type === "order" ? (draft[id]?.length ?? 0) === n : (draft[id]?.length ?? 0) > 0);
   const answered = s.questions.filter((q) => done(q.id, q.type, q.options.length)).length;
-  const all = answered === s.questions.length;
+  const simsDone = s.simRequired.every((c) => c.passed);
+  const all = answered === s.questions.length && simsDone;
   const scored = s.questions.filter((q) => q.scored).length;
   return (
     <div className="grid gap-4">
@@ -330,9 +346,28 @@ function Mastery({ view, s, run, pending }: { view: CourseView; s: Extract<Cours
           {s.questions.length} questions · {scored} scored. You need <strong>{s.passPercent}%</strong> on scored questions with <strong>no safety-critical errors</strong>. Attempt {s.attempt}.
         </p>
         <p className="mt-1 text-sm text-fg-subtle">Answers save as you go. Nothing is graded until you submit.</p>
-        {s.simulationChecks.length > 0 && (
+        {s.simRequired.length > 0 && (
+          <div className="mt-4 grid gap-2">
+            <p className="text-sm font-medium text-fg">Simulator check{s.simRequired.length > 1 ? "s" : ""} — required for mastery (mastery mode: no hints)</p>
+            {s.simRequired.map((c) => (
+              <div key={c.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-line px-4 py-3 text-sm">
+                <span className="flex-1 text-fg">{c.label}</span>
+                {c.passed ? <Badge tone="success">Passed</Badge> : c.lastScore !== null ? <Badge tone="warning">Last {c.lastScore}%</Badge> : <Badge>Not attempted</Badge>}
+                {!c.passed && (
+                  <form action={startSimRun}>
+                    <input type="hidden" name="scenarioId" value={c.id} />
+                    <input type="hidden" name="mode" value="mastery" />
+                    <input type="hidden" name="moduleKey" value={view.moduleKey} />
+                    <Button type="submit" size="sm"><MonitorPlay aria-hidden className="size-4" /> Run check</Button>
+                  </form>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {s.simulationChecks.length > s.simRequired.length && (
           <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-fg-muted">
-            <Badge tone="planned">Not included yet</Badge> Simulator check{s.simulationChecks.length > 1 ? "s" : ""} ({s.simulationChecks.join("; ")}) arrive{s.simulationChecks.length > 1 ? "" : "s"} with the simulator in Phase 3.
+            <Badge tone="planned">Not included yet</Badge> Simulator checks that need Computer 2 apps are not part of this mastery check yet.
           </p>
         )}
       </div>
@@ -354,7 +389,7 @@ function Mastery({ view, s, run, pending }: { view: CourseView; s: Extract<Cours
       <div className="titan-panel sticky bottom-4 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-fg-muted" aria-live="polite">{answered} of {s.questions.length} answered</p>
         <Button size="xl" disabled={!all || pending} onClick={() => run(() => actions.courseSubmitMastery(view.moduleKey), { scrollTop: true })}>
-          <Flag aria-hidden className="size-5" /> {all ? "Submit mastery check" : `Answer all ${s.questions.length} to submit`}
+          <Flag aria-hidden className="size-5" /> {all ? "Submit mastery check" : !simsDone && answered === s.questions.length ? "Pass the simulator check to submit" : `Answer all ${s.questions.length} to submit`}
         </Button>
       </div>
     </div>
@@ -377,6 +412,9 @@ function MasteryResultView({ view, s, run, pending }: { view: CourseView; s: Ext
             <p className="mt-2 text-fg-muted">
               Score <strong className="text-fg">{r.scorePercent}%</strong> ({r.correctCount} of {r.gradedCount} scored) · Safety-critical errors <strong className="text-fg">{r.criticalErrors}</strong> · Required {s.passPercent}% with none.
             </p>
+            {(r.simChecks ?? []).length > 0 && (
+              <p className="mt-2 text-sm text-fg-muted">Simulator: {r.simChecks!.map((c) => `${c.id} ${c.passed ? "passed" : "not passed"}`).join(" · ")}</p>
+            )}
             {r.passed && <p className="mt-2 text-sm text-fg-subtle">Your supervisor validates practical skills during Day 7.</p>}
           </div>
           {r.passed && <ButtonLink href="/dashboard" size="xl">Next step <ArrowRight aria-hidden className="size-5" /></ButtonLink>}

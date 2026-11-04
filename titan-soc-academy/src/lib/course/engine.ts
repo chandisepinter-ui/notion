@@ -111,9 +111,15 @@ function practiceState(s: CourseState, stepId: string) {
   return (s.practice[stepId] ??= { position: 0, items: {} });
 }
 
-export function canAdvanceCourse(mod: CourseModule, s: CourseState): boolean {
+/** Simulator scenarios the platform can run (others are shown as planned and never block). */
+export type SimAvailability = { playable: Set<string> };
+
+export function canAdvanceCourse(mod: CourseModule, s: CourseState, sim: SimAvailability = { playable: new Set() }): boolean {
   const step = currentCourseStep(mod, s);
   switch (step.kind) {
+    case "simulation":
+      // A playable scenario must be completed once (any score) before moving on.
+      return !sim.playable.has(step.scenarioId) || !!s.sims?.[step.scenarioId]?.guidedDone;
     case "practice": {
       const p = s.practice[step.id];
       const item = step.items[p?.position ?? 0];
@@ -129,11 +135,11 @@ export function canAdvanceCourse(mod: CourseModule, s: CourseState): boolean {
   }
 }
 
-export function advanceCourse(mod: CourseModule, input: CourseState): { state: CourseState; changes: CompetencyChange[] } {
+export function advanceCourse(mod: CourseModule, input: CourseState, sim?: SimAvailability): { state: CourseState; changes: CompetencyChange[] } {
   const s = clone(input);
   const step = currentCourseStep(mod, s);
   const changes: CompetencyChange[] = [];
-  if (!canAdvanceCourse(mod, s)) throw new LessonError("NOT_COMPLETE", "Finish this part before continuing.");
+  if (!canAdvanceCourse(mod, s, sim)) throw new LessonError("NOT_COMPLETE", "Finish this part before continuing.");
   switch (step.kind) {
     case "cards": {
       const i = s.cardIndex[step.id] ?? 0;
@@ -232,6 +238,7 @@ export function submitMastery(
   mod: CourseModule,
   input: CourseState,
   now = Date.now(),
+  sim: SimAvailability = { playable: new Set() },
 ): { state: CourseState; result: MasteryResult; attempts: AttemptRecord[]; changes: CompetencyChange[] } {
   const s = clone(input);
   const step = openMastery(mod, s);
@@ -279,8 +286,9 @@ export function submitMastery(
   });
   const gradedCount = step.items.filter((q) => q.graded).length;
   const scorePercent = possible ? Math.round((earned / possible) * 100) : 0;
-  const passed = gradedCount > 0 && scorePercent >= step.passPercent && criticalErrors === 0;
-  const result: MasteryResult = { attempt: s.mastery.attempt, scorePercent, correctCount, gradedCount, criticalErrors, passed, submittedAt: now, items };
+  const simChecks = (step.simulationScenarioIds ?? []).filter((id) => sim.playable.has(id)).map((id) => ({ id, passed: !!s.sims?.[id]?.masteryPassed }));
+  const passed = gradedCount > 0 && scorePercent >= step.passPercent && criticalErrors === 0 && simChecks.every((c) => c.passed);
+  const result: MasteryResult = { attempt: s.mastery.attempt, scorePercent, correctCount, gradedCount, criticalErrors, passed, submittedAt: now, simChecks, items };
   s.mastery.result = result;
   s.mastery.history.push({ attempt: result.attempt, scorePercent, passed, submittedAt: now });
   s.mastery.remediationReviewed = false;
@@ -308,6 +316,8 @@ export function startRetest(mod: CourseModule, input: CourseState): CourseState 
   if (s.status !== "REMEDIATION" || currentCourseStep(mod, s).kind !== "mastery") throw new LessonError("NOT_ALLOWED", "A retest is not available.");
   if (!s.mastery.remediationReviewed) throw new LessonError("NOT_ALLOWED", "Review the remediation material first.");
   s.mastery = { ...s.mastery, attempt: s.mastery.attempt + 1, draft: {}, result: undefined, remediationReviewed: false };
+  // A retest needs fresh simulator evidence too.
+  for (const v of Object.values(s.sims ?? {})) v.masteryPassed = false;
   s.status = "IN_PROGRESS";
   return s;
 }

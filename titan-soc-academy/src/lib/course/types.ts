@@ -35,7 +35,7 @@ export type CourseStep =
   | { id: string; stage: Stage; kind: "info"; title: string; cards: { title: string; body: string }[] }
   | { id: string; stage: Stage; kind: "practice"; title: string; items: Question[] }
   | { id: string; stage: Stage; kind: "simulation"; title: string; scenarioId: string; scenarioTitle: string; brief: string }
-  | { id: string; stage: Stage; kind: "mastery"; title: string; items: Question[]; passPercent: number; simulationChecks: string[] }
+  | { id: string; stage: Stage; kind: "mastery"; title: string; items: Question[]; passPercent: number; simulationChecks: string[]; simulationScenarioIds?: string[] }
   | { id: string; stage: Stage; kind: "pending-source"; title: string; body: string }
   | { id: string; stage: Stage; kind: "supervisor-gate"; title: string; cards: { title: string; body: string }[] };
 
@@ -63,7 +63,12 @@ export type ConflictRecord = {
 /** An owner ruling as shown to learners. */
 export type Ruling = { conflictId: string; choice: string; ruling: string; decidedAt: number; decidedBy: string };
 
+import type { ImmixConfig, SimScenario } from "@/lib/sim/types";
+
 export type CourseCatalog = {
+  /** Simulator scenarios (S01–S10) and IMMIX settings, from the Titan scenario catalog. */
+  scenarios?: SimScenario[];
+  immix?: ImmixConfig;
   generatedAt: string;
   catalogVersion: string;
   modules: CourseModule[];
@@ -91,6 +96,8 @@ export type CourseState = {
   stepIndex: number;
   completedSteps: string[];
   status: "IN_PROGRESS" | "REMEDIATION" | "PASSED" | "PENDING_SOURCE";
+  /** Simulator runs launched from this module (recorded by the server when a run is scored). */
+  sims?: Record<string, { guidedDone?: boolean; masteryPassed?: boolean; lastScore?: number; lastPassed?: boolean }>;
   cardIndex: Record<string, number>;
   practice: Record<string, { position: number; items: Record<string, { tries: number; solved: boolean; last?: number[]; feedback?: QuestionFeedback }> }>;
   mastery: {
@@ -110,6 +117,8 @@ export type MasteryResult = {
   criticalErrors: number;
   passed: boolean;
   submittedAt: number;
+  /** Simulator checks required for mastery (only scenarios the simulator can run). */
+  simChecks?: { id: string; passed: boolean }[];
   items: {
     id: string;
     prompt: string;
