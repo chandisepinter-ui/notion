@@ -5,6 +5,8 @@ import { requirePermission } from "@/lib/auth/guards";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { db, schema } from "@/lib/db/client";
 import { LESSON_MODULES } from "@/content/curriculum";
+import { getTitanCatalog } from "@/content/titan-catalog";
+import { ContentStatusBadge } from "@/components/course/ContentStatus";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { Badge } from "@/components/ui/Badge";
@@ -19,12 +21,66 @@ export default async function CurriculumPage() {
     db.select().from(schema.modules).orderBy(asc(schema.modules.dayNumber), asc(schema.modules.sortOrder)),
   ]);
   const built = Object.values(LESSON_MODULES);
+  const catalog = getTitanCatalog();
+  const open = catalog?.conflicts.filter((c) => c.status === "OPEN") ?? [];
   return (
     <>
       <PageHeader eyebrow="Administration" title="Curriculum" description="Modules are defined as structured content. Items flagged below must be approved by Titan subject-matter experts before training is used for certification." />
       <div className="grid grid-cols-1 gap-6">
+        <Panel aria-labelledby="import">
+          <PanelHeader title="Imported Titan content" id="import" eyebrow="From the Power Apps Academy build" />
+          <div className="p-6 text-sm text-fg-muted">
+            {catalog ? (
+              <p>
+                Catalog <strong className="text-fg">{catalog.catalogVersion}</strong> · imported {new Date(catalog.generatedAt).toLocaleString("en-US")} · {catalog.modules.length} modules · {catalog.sources.length} sources · {open.length} open conflicts. Stored locally only (never committed to GitHub). Re-run <code className="font-mono">npm run content:import</code> after content changes.
+              </p>
+            ) : (
+              <p>No Titan content imported on this computer. See README → Importing Titan content.</p>
+            )}
+          </div>
+        </Panel>
+
+        {open.length > 0 && (
+          <Panel aria-labelledby="conflicts">
+            <PanelHeader title="Open source conflicts" id="conflicts" eyebrow="Affected items are not scored until decided" />
+            <ul className="grid gap-3 p-6">
+              {open.map((c) => (
+                <li key={c.id} className="rounded-xl border border-warning/40 bg-warning-soft p-4 text-sm">
+                  <p className="font-semibold text-fg">{c.id} · Owner: {c.owner}</p>
+                  <p className="mt-1 text-fg"><span className="font-medium">A:</span> {c.a}</p>
+                  <p className="text-fg"><span className="font-medium">B:</span> {c.b}</p>
+                  <p className="mt-1 text-fg-muted"><span className="font-medium">Affects:</span> {c.impact}</p>
+                  <p className="text-fg-muted"><span className="font-medium">Until decided:</span> {c.handling}</p>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        )}
+
+        {catalog && (
+          <Panel aria-labelledby="sources">
+            <PanelHeader title="Source registry" id="sources" eyebrow="Documents the content is grounded in" />
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] text-left text-sm">
+                <caption className="sr-only">Source documents</caption>
+                <thead><tr className="border-b border-line text-xs uppercase tracking-wider text-fg-subtle"><th scope="col" className="px-6 py-3 font-medium">Source</th><th scope="col" className="px-3 py-3 font-medium">Date</th><th scope="col" className="px-3 py-3 font-medium">Status</th><th scope="col" className="px-6 py-3 font-medium">How it was read</th></tr></thead>
+                <tbody className="divide-y divide-line">
+                  {catalog.sources.map((s) => (
+                    <tr key={s.id}>
+                      <td className="px-6 py-3"><span className="text-fg">{s.title}</span><span className="block font-mono text-xs text-fg-subtle">{s.id}</span></td>
+                      <td className="px-3 py-3 font-mono text-xs text-fg-muted">{s.date}</td>
+                      <td className="px-3 py-3 text-fg-muted">{s.status}</td>
+                      <td className="px-6 py-3 text-fg-muted">{s.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+        )}
+
         <Panel aria-labelledby="pending">
-          <PanelHeader title="Pending SME approval" id="pending" eyebrow="Do not treat as policy" />
+          <PanelHeader title="Built-in practice lab: pending SME approval" id="pending" eyebrow="Fictional — do not treat as policy" />
           <ul className="grid gap-3 p-6">
             {built.flatMap((m) => m.pendingApproval.map((p) => ({ m, p }))).map(({ m, p }, i) => (
               <li key={i} className="flex gap-3 rounded-xl border border-warning/40 bg-warning-soft p-4 text-sm">
@@ -47,8 +103,8 @@ export default async function CurriculumPage() {
                     <tr key={m.id}>
                       <td className="px-6 py-3 font-mono text-fg-muted">D{m.dayNumber} · {days.find((d) => d.dayNumber === m.dayNumber)?.title}</td>
                       <td className="px-3 py-3"><span className="font-medium text-fg">{m.title}</span><span className="block font-mono text-xs text-fg-subtle">{m.key}</span></td>
-                      <td className="px-3 py-3">{m.status === "AVAILABLE" ? <Badge tone="success">Available{m.isPreview ? " · preview" : ""}</Badge> : <PlannedBadge />}</td>
-                      <td className="px-6 py-3 text-fg-muted">{c ? `v${c.version} · ${c.steps.length} steps · ${c.scenarios.length} scenarios · ${c.competencies.length} competencies` : "—"}</td>
+                      <td className="px-3 py-3"><div className="flex flex-wrap gap-1.5">{m.status === "AVAILABLE" ? <Badge tone="success">Available{m.isPreview ? " · practice lab" : ""}</Badge> : <PlannedBadge />}<ContentStatusBadge status={m.contentStatus} /></div></td>
+                      <td className="px-6 py-3 text-fg-muted">{m.origin === "titan-import" ? (() => { const cm = catalog?.modules.find((x) => x.key === m.key); if (!cm) return "Imported content missing on this computer"; const q = cm.steps.flatMap((x) => (x.kind === "mastery" ? x.items : [])); return `${cm.steps.length} steps · ${q.length} mastery questions (${q.filter((i) => i.graded).length} scored)`; })() : c ? `Built-in · ${c.steps.length} steps · ${c.scenarios.length} scenarios` : "—"}</td>
                     </tr>
                   );
                 })}

@@ -9,3 +9,6 @@ data/*.db
 data/*.db-*
 test-results/
 tests/e2e/screenshots/
+
+# Real Titan content - NEVER commit (imported from OneDrive)
+content-import/

@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: "Dashboard" };
 export default async function DashboardPage() {
   const user = await requirePermission(PERMISSIONS.ACADEMY_ACCESS);
   const [mods, days, comps, attempts] = await Promise.all([
-    getModulesWithProgress(user.id),
+    getModulesWithProgress(user.id, { previewAll: user.permissions.has(PERMISSIONS.ACADEMY_PREVIEW_ALL) }),
     getAcademyDays(),
     getCompetencyRecords(user.id),
     getAttempts(user.id, 6),
@@ -126,7 +126,7 @@ export default async function DashboardPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-fg">{a.scenarioLabel}</p>
                   <p className="text-xs text-fg-subtle">
-                    {a.stage.toUpperCase()} · {a.actionLabel} · {a.ruleLabel}
+                    {a.stage.toUpperCase()} · {a.actionLabel}{a.ruleLabel ? ` · ${a.ruleLabel}` : ""}
                     {a.misconceptionLabel ? ` · ${a.misconceptionLabel}` : ""}
                   </p>
                 </div>

@@ -34,7 +34,7 @@ export function AttemptTable({ attempts, caption }: { attempts: AttemptRow[]; ca
                 <span className="block text-xs text-fg-subtle">{a.assessmentAttempt ? `Attempt ${a.assessmentAttempt}` : `Try ${a.tryNumber}`}</span>
               </td>
               <td className="px-3 py-3 text-fg">{a.scenarioLabel}</td>
-              <td className="px-3 py-3 text-fg">{a.actionLabel} · <span className="font-mono">{a.ruleLabel}</span></td>
+              <td className="px-3 py-3 text-fg">{a.actionLabel}{a.ruleLabel && <> · <span className="font-mono">{a.ruleLabel}</span></>}</td>
               <td className="px-3 py-3 text-fg-muted">{a.misconceptionLabel ?? "—"}</td>
               <td className="px-6 py-3 font-mono text-xs text-fg-subtle">{formatDateTime(a.createdAt)}</td>
             </tr>

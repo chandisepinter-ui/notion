@@ -629,15 +629,15 @@ export const immixAlertInvestigation: LessonModule = {
       title: "Verification",
       task: "Answer all five alerts, then submit. Results appear after you submit.",
       intro:
-        "Five alerts from two fictional sites. You must review the required evidence for each before answering. You need 80% (4 of 5) and no critical errors to pass. Critical error in this exercise: failing to escalate an unauthorized presence.",
+        "Five alerts from two fictional sites. You must review the required evidence for each before answering. You need 90% (all 5) and no critical errors to pass — the same standard as the Titan Academy mastery checks. Critical error in this exercise: failing to escalate an unauthorized presence.",
       groups: verifyGroups,
-      passPercent: 80,
+      passPercent: 90,
     },
   ],
   pendingApproval: [
     "Response-plan rule set R1–R4 is a fictional template. Replace with Titan-approved IMMIX alarm-handling procedure before certification use.",
     "Escalation order (talk-down → police dispatch → keyholders) is fictional. Confirm the actual Titan escalation sequence.",
     "\"Critical error\" definition (failure to escalate unauthorized presence) is a training assumption. Confirm Titan's critical-error criteria.",
-    "Pass threshold (80% with no critical errors) is a proposed default. Confirm with SOC leadership.",
+    "Pass threshold set to 90% with no critical errors to match ACADEMY_DIRECTION_2026 (Power Apps Academy).",
   ],
 };

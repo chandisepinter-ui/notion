@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Progress & Competency" };
 
 export default async function ProgressPage() {
   const user = await requirePermission(PERMISSIONS.ACADEMY_ACCESS);
-  const [comps, events, mods] = await Promise.all([getCompetencyRecords(user.id), getCompetencyEvents(user.id), getModulesWithProgress(user.id)]);
+  const [comps, events, mods] = await Promise.all([getCompetencyRecords(user.id), getCompetencyEvents(user.id), getModulesWithProgress(user.id, { previewAll: user.permissions.has(PERMISSIONS.ACADEMY_PREVIEW_ALL) })]);
   const ladder = (["LEARNING", "ASSISTED", "PRACTICING", "MASTERY_DEMONSTRATED", "REMEDIATION"] as CompetencyLevel[]).map((k) => ({ key: k, ...COMPETENCY_LEVELS[k] }));
   const started = mods.filter((m) => m.progress);
   return (

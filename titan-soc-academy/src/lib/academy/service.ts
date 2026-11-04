@@ -70,21 +70,48 @@ export async function persistLesson(args: {
   changes?: CompetencyChange[];
   scorePercent?: number;
 }) {
-  const { userId, content, moduleId, state, attempts = [], changes = [] } = args;
+  const { state } = args;
+  return persistProgress({
+    userId: args.userId,
+    moduleId: args.moduleId,
+    status: state.status,
+    stepIndex: state.stepIndex,
+    stateJson: JSON.stringify(state),
+    contentVersion: args.content.version,
+    assessmentAttempts: state.assessment.history.length,
+    attempts: args.attempts,
+    changes: args.changes,
+    scorePercent: args.scorePercent,
+  });
+}
+
+/** Saves progress, graded attempts and competency changes in one transaction (any module format). */
+export async function persistProgress(args: {
+  userId: string;
+  moduleId: string;
+  status: "IN_PROGRESS" | "REMEDIATION" | "PASSED" | "PENDING_SOURCE";
+  stepIndex: number;
+  stateJson: string;
+  contentVersion: number;
+  assessmentAttempts: number;
+  attempts?: AttemptRecord[];
+  changes?: CompetencyChange[];
+  scorePercent?: number;
+}) {
+  const { userId, moduleId, status, attempts = [], changes = [] } = args;
   const now = new Date();
   await db.transaction(async (tx) => {
     const existing = await tx.query.moduleProgress.findFirst({
       where: and(eq(schema.moduleProgress.userId, userId), eq(schema.moduleProgress.moduleId, moduleId)),
     });
-    const status = state.status === "PASSED" ? "PASSED" : state.status === "REMEDIATION" ? "REMEDIATION" : "IN_PROGRESS";
     const bestScore =
       args.scorePercent !== undefined ? Math.max(existing?.bestScore ?? 0, args.scorePercent) : existing?.bestScore ?? null;
     const values = {
       status,
-      currentStepIndex: state.stepIndex,
-      stateJson: JSON.stringify(state),
-      contentVersion: content.version,
-      assessmentAttempts: state.assessment.history.length,
+      currentStepIndex: args.stepIndex,
+      stateJson: args.stateJson,
+      contentVersion: args.contentVersion,
+      assessmentAttempts: args.assessmentAttempts,
       bestScore,
       updatedAt: now,
       completedAt: status === "PASSED" ? existing?.completedAt ?? now : null,

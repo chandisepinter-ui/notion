@@ -2,6 +2,8 @@ import "server-only";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/lib/db/client";
 import { getLessonModule } from "@/content/curriculum";
+import { getCourseModule } from "@/content/titan-catalog";
+import { parseCourseState } from "@/lib/course/engine";
 import { parseState } from "./engine";
 import { STAGES } from "./types";
 
@@ -14,6 +16,11 @@ export type ModuleWithProgress = {
   status: string;
   isPreview: boolean;
   estimatedMinutes: number | null;
+  format: string;
+  origin: string;
+  contentStatus: string | null;
+  /** Locked until earlier modules are complete (operators). */
+  locked: boolean;
   progress: {
     status: string;
     percent: number;
@@ -27,6 +34,17 @@ export type ModuleWithProgress = {
 
 /** Percent of a module completed, based on completed steps (honest, step-based). */
 function percentFor(moduleKey: string, stateJson: string, status: string) {
+  if (status === "PASSED") return { percent: 100, stageLabel: "Complete" };
+  const course = getCourseModule(moduleKey);
+  if (course) {
+    const st = parseCourseState(stateJson);
+    if (status === "PENDING_SOURCE") return { percent: 100, stageLabel: "Completed — pending source" };
+    const step = course.steps[Math.min(st.stepIndex, course.steps.length - 1)];
+    return {
+      percent: Math.round((st.completedSteps.length / course.steps.length) * 100),
+      stageLabel: STAGES.find((x) => x.key === step.stage)?.label ?? null,
+    };
+  }
   const content = getLessonModule(moduleKey);
   if (!content) return { percent: 0, stageLabel: null as string | null };
   if (status === "PASSED") return { percent: 100, stageLabel: "Complete" };
@@ -36,9 +54,19 @@ function percentFor(moduleKey: string, stateJson: string, status: string) {
   return { percent: Math.round((st.completedSteps.length / content.steps.length) * 100), stageLabel: label };
 }
 
-export async function getModulesWithProgress(userId: string): Promise<ModuleWithProgress[]> {
+/** Statuses that let the next module unlock. */
+const DONE = new Set(["PASSED", "PENDING_SOURCE"]);
+
+export async function getModulesWithProgress(userId: string, opts: { previewAll?: boolean } = {}): Promise<ModuleWithProgress[]> {
   const mods = await db.select().from(schema.modules).orderBy(asc(schema.modules.dayNumber), asc(schema.modules.sortOrder));
   const prog = await db.select().from(schema.moduleProgress).where(eq(schema.moduleProgress.userId, userId));
+  // Titan course modules unlock in order: each opens once every earlier one is complete.
+  let blocked = false;
+  const lockedKeys = new Set<string>();
+  for (const m of mods.filter((x) => x.format === "course" && x.status === "AVAILABLE")) {
+    if (blocked && !opts.previewAll) lockedKeys.add(m.key);
+    if (!DONE.has(prog.find((p) => p.moduleId === m.id)?.status ?? "")) blocked = true;
+  }
   return mods.map((m) => {
     const p = prog.find((x) => x.moduleId === m.id);
     const extra = p ? percentFor(m.key, p.stateJson, p.status) : null;
@@ -51,6 +79,10 @@ export async function getModulesWithProgress(userId: string): Promise<ModuleWith
       status: m.status,
       isPreview: m.isPreview,
       estimatedMinutes: m.estimatedMinutes,
+      format: m.format,
+      origin: m.origin,
+      contentStatus: m.contentStatus,
+      locked: lockedKeys.has(m.key),
       progress: p
         ? {
             status: p.status,
@@ -75,7 +107,10 @@ export type NextAction =
   | { kind: "caught-up"; headline: string; detail: string };
 
 export function computeNextAction(mods: ModuleWithProgress[]): NextAction {
-  const available = mods.filter((m) => m.status === "AVAILABLE");
+  // Titan modules first (the real curriculum), then built-in practice labs.
+  const available = mods
+    .filter((m) => m.status === "AVAILABLE" && !m.locked)
+    .sort((a, b) => (a.origin === b.origin ? 0 : a.origin === "titan-import" ? -1 : 1));
   const remediation = available.find((m) => m.progress?.status === "REMEDIATION");
   if (remediation)
     return {
@@ -94,7 +129,7 @@ export function computeNextAction(mods: ModuleWithProgress[]): NextAction {
       detail: `You are in the ${inProgress.progress?.stageLabel ?? ""} stage. Your progress is saved — pick up exactly where you left off.`,
       cta: "Continue training",
     };
-  const notStarted = available.find((m) => !m.progress || m.progress.status === "NOT_STARTED");
+  const notStarted = available.find((m) => !m.locked && (!m.progress || m.progress.status === "NOT_STARTED"));
   if (notStarted)
     return {
       kind: "start",
@@ -165,11 +200,22 @@ export async function getAttempts(userId: string, limit = 200) {
 
 /** Turns stored ids into readable text for history and supervisor review. */
 function describeAttempt<T extends { moduleKey: string; itemId: string; responseJson: string; misconception: string | null }>(r: T) {
-  const content = getLessonModule(r.moduleKey);
   let response: { action?: string; rule?: string } = {};
   try {
     response = JSON.parse(r.responseJson);
   } catch {}
+  const course = getCourseModule(r.moduleKey);
+  if (course) {
+    const q = course.steps.flatMap((s) => (s.kind === "practice" || s.kind === "mastery" ? s.items : [])).find((i) => i.id === r.itemId);
+    return {
+      ...r,
+      scenarioLabel: `${r.moduleKey} · ${q ? (q.prompt.length > 110 ? q.prompt.slice(0, 107) + "…" : q.prompt) : r.itemId}`,
+      actionLabel: response.action ?? "—",
+      ruleLabel: "",
+      misconceptionLabel: r.misconception === "not-scored" ? "Not scored (pending source decision)" : null,
+    };
+  }
+  const content = getLessonModule(r.moduleKey);
   let scenarioLabel = r.itemId;
   if (content) {
     const items = content.steps.flatMap((s) =>

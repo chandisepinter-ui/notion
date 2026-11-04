@@ -13,6 +13,9 @@ import { drizzle } from "drizzle-orm/libsql";
 import { and, eq } from "drizzle-orm";
 import * as schema from "../src/lib/db/schema";
 import { PERMISSION_DEFINITIONS, ROLE_DEFINITIONS } from "../src/lib/auth/permissions";
+import { readFileSync } from "node:fs";
+import { seedCourseCatalog } from "./lib/seed-course";
+import type { CourseCatalog } from "../src/lib/course/types";
 import { ACADEMY_DAYS, ARCADE_SEEDS, DEMO_USERS, LESSON_MODULES, MODULE_SEEDS, SKILL_SEEDS } from "../src/content/curriculum";
 
 if (existsSync(".env")) loadEnvFile(".env");
@@ -23,6 +26,7 @@ async function main() {
   const db = drizzle(client, { schema });
 
   // Permissions (descriptions refreshed from code)
+  const existingPerms = new Set((await db.select().from(schema.permissions)).map((p) => p.key));
   for (const p of PERMISSION_DEFINITIONS) {
     await db.insert(schema.permissions).values(p).onConflictDoUpdate({ target: schema.permissions.key, set: { category: p.category, description: p.description } });
   }
@@ -36,6 +40,15 @@ async function main() {
     }
     const [role] = await db.insert(schema.roles).values({ key: r.key, name: r.name, description: r.description, rank: r.rank }).returning();
     await db.insert(schema.rolePermissions).values(r.permissions.map((permissionKey) => ({ roleId: role.id, permissionKey })));
+  }
+
+  // A permission added in a newer version is granted to its default roles once,
+  // without touching any grants an administrator has changed.
+  for (const p of PERMISSION_DEFINITIONS.filter((p) => existingPerms.size && !existingPerms.has(p.key))) {
+    for (const r of ROLE_DEFINITIONS.filter((r) => r.permissions.includes(p.key))) {
+      const role = await db.query.roles.findFirst({ where: eq(schema.roles.key, r.key) });
+      if (role) await db.insert(schema.rolePermissions).values({ roleId: role.id, permissionKey: p.key }).onConflictDoNothing();
+    }
   }
 
   // Academy days & modules
@@ -90,6 +103,15 @@ async function main() {
     where: and(eq(schema.supervisorAssignments.supervisorId, ids.supervisor), eq(schema.supervisorAssignments.traineeId, ids.operator)),
   });
   if (!exists) await db.insert(schema.supervisorAssignments).values({ supervisorId: ids.supervisor, traineeId: ids.operator });
+
+  // Imported Titan content (git-ignored) replaces the placeholders if present.
+  const catalogPath = "content-import/generated/titan-catalog.json";
+  if (existsSync(catalogPath) && process.env.TITAN_CONTENT !== "off") {
+    await seedCourseCatalog(JSON.parse(readFileSync(catalogPath, "utf8")) as CourseCatalog);
+    console.log("✔ Imported Titan curriculum loaded from content-import/.");
+  } else {
+    console.log("ℹ No imported Titan content found (content-import/). Showing placeholders. See README → Importing Titan content.");
+  }
 
   console.log("✔ Seed complete: roles, permissions, curriculum, skills, arcade and demo accounts are ready.");
   client.close();

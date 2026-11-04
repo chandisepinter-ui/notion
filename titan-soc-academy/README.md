@@ -5,9 +5,12 @@ This build is the **Phase 1 foundation**: design system, navigation, three role 
 database, permissions, the seven-day roadmap, a reusable lesson engine, and one fully
 working demonstration module (IMMIX alert investigation).
 
-> **All training content in this build is fictional.** Sites, vendors, people, phone numbers
-> (555-01xx) and response plans were invented for practice. They are **not** Titan policy.
-> Items needing Titan SME approval are listed in the app under **Administration → Curriculum**.
+> **Two kinds of content:**
+> 1. **Titan curriculum (38 modules, Days 1–7)** — imported from the Power Apps Academy build with
+>    `npm run content:import`. It is real Titan content, so it is **never stored in this repository**;
+>    it lives only in the git-ignored `content-import/` folder on your computer.
+> 2. **IMMIX practice lab** (built in) — fully fictional sites and response plans used to demonstrate
+>    the simulated alarm console. Not Titan policy.
 
 ---
 
@@ -44,6 +47,33 @@ Next time, you only need step 2 and `npm run dev`.
 
 ---
 
+## Importing Titan content (once per computer, and after content changes)
+
+The real curriculum comes from your Power Apps Academy build in OneDrive:
+`SOC Academy › titan-soc-academy › data › seeds › import`
+
+1. In the project folder, create the folder `content-import\powerapps` (if it is not there).
+2. Copy these files from the OneDrive `import` folder into `content-import\powerapps`:
+   `SOC_Academy_Curriculum_modules.csv`, `SOC_Academy_Lessons.csv`, `SOC_Academy_Assessment_Items.csv`,
+   `SOC_Academy_Answer_Keys.csv`, `SOC_Academy_Scenario_Catalog.csv`, `SOC_Academy_Conflicts.csv`,
+   `SOC_Academy_Source_Registry.csv`, `SOC_Academy_Media.csv` — plus
+   `SOC_Academy_Day7_Competencies_catalog.csv` from the `seeds` folder one level up.
+3. Run:
+   ```powershell
+   npm run content:import
+   ```
+   It checks every answer key, reports any content problems, and loads the modules.
+4. Restart `npm run dev`. The Academy now shows all 38 modules.
+
+What the import does with your content:
+* Mastery = **90% of scored questions with no safety-critical errors** (from ACADEMY_DIRECTION_2026).
+* Questions tied to an **OPEN conflict** in `SOC_Academy_Conflicts.csv` are shown but **not scored**.
+* Each module shows its source status (*Source-grounded · pending approval*, *Partial source*, *Needs source*).
+* Training videos appear only once marked approved in `SOC_Academy_Media.csv` (none are yet).
+* Modules without approved graded content (e.g. *Living the Motto*) record **Completed — pending source**.
+* Simulator steps (S01–S10) are shown as *Planned · Phase 3* until the simulator is built.
+* Operators unlock modules in order; supervisors and administrators can preview any module.
+
 ## Try it (5-minute tour)
 
 | Sign in as | What to look at |
@@ -69,7 +99,9 @@ text size and motion are under **Profile & Preferences**.
 | `npm run setup` | Creates `.env`, the database tables, curriculum and demo accounts (safe to re-run) |
 | `npm run db:reset` | Deletes the local database and rebuilds it (all local progress is lost) |
 | `npm run check` | Type-check + unit tests of the lesson engine |
-| `npm run test:e2e` | Full browser test of every role and the whole lesson, using a separate throwaway database. First run `npx playwright install chromium` once. |
+| `npm run content:import` | Imports the Titan curriculum from `content-import\powerapps` (see above) |
+| `npm run test:e2e` | Full browser test of every role and the practice lab, using a separate throwaway database and no Titan content. First run `npx playwright install chromium` once. |
+| `npm run test:content` | Browser check of the imported Titan content: every module opens and every step works |
 | `npm run build` then `npm start` | Production-style build and run |
 
 ---
@@ -120,7 +152,12 @@ scripts/                  setup, seed, reset
 tests/                    unit tests (engine) and end-to-end browser tests
 ```
 
-### Adding a new lesson module (no new code)
+### Updating Titan content
+
+Edit the content where it is maintained (the SOC Academy seed files), copy the updated files into
+`content-import\powerapps`, and run `npm run content:import`. Learner progress is kept.
+
+### Adding a new built-in practice module (no new code)
 
 1. Copy `src/content/modules/immix-alert-investigation.ts` and edit the sites, scenarios and steps.
 2. Register it in `LESSON_MODULES` in `src/content/curriculum.ts` and set its `MODULE_SEEDS` entry to

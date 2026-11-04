@@ -46,7 +46,7 @@ export const MODULE_SEEDS: ModuleSeed[] = [
     status: "AVAILABLE",
     isPreview: true,
     estimatedMinutes: immixAlertInvestigation.estimatedMinutes,
-    sortOrder: 1,
+    sortOrder: 90,
   },
   { key: "immix-event-handling", dayNumber: 2, title: "IMMIX Event Handling & Closure", summary: "Working the alarm queue end to end, including documentation.", status: "PLANNED", isPreview: false, estimatedMinutes: null, sortOrder: 2 },
   { key: "hubspot-tickets", dayNumber: 3, title: "HubSpot Incident Documentation", summary: "Creating accurate, complete incident records.", status: "PLANNED", isPreview: false, estimatedMinutes: null, sortOrder: 1 },

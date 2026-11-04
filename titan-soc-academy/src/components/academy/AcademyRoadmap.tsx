@@ -4,6 +4,7 @@ import type { ModuleWithProgress } from "@/lib/academy/queries";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/Progress";
 import { cn } from "@/lib/cn";
+import { ContentStatusBadge } from "@/components/course/ContentStatus";
 
 type Day = { dayNumber: number; title: string; summary: string; format: string };
 
@@ -14,7 +15,13 @@ export function moduleStatusBadge(m: ModuleWithProgress) {
         <Clock3 aria-hidden className="size-3" /> Not yet available
       </Badge>
     );
+  if (m.locked)
+    return (
+      <Badge tone="neutral"><Lock aria-hidden className="size-3" /> Locked</Badge>
+    );
   switch (m.progress?.status) {
+    case "PENDING_SOURCE":
+      return <Badge tone="warning">Completed · pending source</Badge>;
     case "PASSED":
       return <Badge tone="success"><CheckCircle2 aria-hidden className="size-3" /> Verified</Badge>;
     case "REMEDIATION":
@@ -32,7 +39,7 @@ export function AcademyRoadmap({ days, modules }: { days: Day[]; modules: Module
     <ol className="relative grid gap-4">
       {days.map((day) => {
         const mods = modules.filter((m) => m.dayNumber === day.dayNumber);
-        const anyAvailable = mods.some((m) => m.status === "AVAILABLE");
+        const anyAvailable = mods.some((m) => m.status === "AVAILABLE" && !m.locked);
         const allPassed = mods.length > 0 && mods.every((m) => m.progress?.status === "PASSED");
         return (
           <li key={day.dayNumber} className="titan-panel grid gap-5 p-5 sm:grid-cols-[180px_1fr] sm:p-6">
@@ -56,13 +63,15 @@ export function AcademyRoadmap({ days, modules }: { days: Day[]; modules: Module
               <p className="text-sm leading-relaxed text-fg-muted">{day.summary}</p>
               <ul className="mt-4 grid gap-2">
                 {mods.map((m) => {
-                  const available = m.status === "AVAILABLE";
+                  const available = m.status === "AVAILABLE" && !m.locked;
                   const inner = (
                     <>
                       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className={cn("font-medium", available ? "text-fg" : "text-fg-subtle")}>{m.title}</span>
-                          {m.isPreview && available && <Badge tone="accent">Phase 1 demonstration</Badge>}
+                          {m.origin === "titan-import" && <span className="font-mono text-[0.6875rem] text-fg-subtle">{m.key}</span>}
+                          {m.isPreview && available && <Badge tone="accent">Practice lab · fictional</Badge>}
+                          {m.contentStatus && <ContentStatusBadge status={m.contentStatus} />}
                         </div>
                         {available && m.progress && m.progress.status !== "PASSED" && (
                           <ProgressBar value={m.progress.percent} label={`${m.title} progress`} className="max-w-xs" />
@@ -70,7 +79,7 @@ export function AcademyRoadmap({ days, modules }: { days: Day[]; modules: Module
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         {moduleStatusBadge(m)}
-                        {available ? <ArrowUpRight aria-hidden className="size-4 text-fg-subtle" /> : <Lock aria-hidden className="size-4 text-fg-subtle" />}
+                        {available ? <ArrowUpRight aria-hidden className="size-4 text-fg-subtle" /> : m.locked ? null : <Lock aria-hidden className="size-4 text-fg-subtle" />}
                       </div>
                     </>
                   );

@@ -6,6 +6,7 @@
  */
 export const PERMISSIONS = {
   ACADEMY_ACCESS: "academy.access",
+  ACADEMY_PREVIEW_ALL: "academy.preview_all",
   ARCADE_PLAY: "arcade.play",
   REFERENCE_ACCESS_ANYTIME: "reference.access_anytime",
   SUPERVISOR_TRAINEES_VIEW: "supervisor.trainees.view",
@@ -22,6 +23,7 @@ export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
 export const PERMISSION_DEFINITIONS: { key: PermissionKey; category: string; description: string }[] = [
   { key: PERMISSIONS.ACADEMY_ACCESS, category: "Training", description: "Take Academy modules and see personal progress." },
+  { key: PERMISSIONS.ACADEMY_PREVIEW_ALL, category: "Training", description: "Open any Academy module without completing earlier ones (preview)." },
   { key: PERMISSIONS.ARCADE_PLAY, category: "Training", description: "Open the Arcade (games available as they are released)." },
   { key: PERMISSIONS.REFERENCE_ACCESS_ANYTIME, category: "Training", description: "Open the Reference Center without graduating first." },
   { key: PERMISSIONS.SUPERVISOR_TRAINEES_VIEW, category: "Supervision", description: "View progress and answers of assigned trainees." },
@@ -57,6 +59,7 @@ export const ROLE_DEFINITIONS: {
       PERMISSIONS.ACADEMY_ACCESS,
       PERMISSIONS.ARCADE_PLAY,
       PERMISSIONS.REFERENCE_ACCESS_ANYTIME,
+      PERMISSIONS.ACADEMY_PREVIEW_ALL,
       PERMISSIONS.SUPERVISOR_TRAINEES_VIEW,
       PERMISSIONS.SUPERVISOR_NOTES_WRITE,
       PERMISSIONS.SUPERVISOR_GRADUATION_APPROVE,
@@ -71,6 +74,7 @@ export const ROLE_DEFINITIONS: {
       PERMISSIONS.ACADEMY_ACCESS,
       PERMISSIONS.ARCADE_PLAY,
       PERMISSIONS.REFERENCE_ACCESS_ANYTIME,
+      PERMISSIONS.ACADEMY_PREVIEW_ALL,
       PERMISSIONS.SUPERVISOR_TRAINEES_VIEW,
       PERMISSIONS.SUPERVISOR_TRAINEES_VIEW_ALL,
       PERMISSIONS.SUPERVISOR_NOTES_WRITE,
@@ -86,6 +90,7 @@ export const ROLE_DEFINITIONS: {
       PERMISSIONS.ACADEMY_ACCESS,
       PERMISSIONS.ARCADE_PLAY,
       PERMISSIONS.REFERENCE_ACCESS_ANYTIME,
+      PERMISSIONS.ACADEMY_PREVIEW_ALL,
       PERMISSIONS.SUPERVISOR_TRAINEES_VIEW,
       PERMISSIONS.SUPERVISOR_TRAINEES_VIEW_ALL,
       PERMISSIONS.ADMIN_USERS_MANAGE,

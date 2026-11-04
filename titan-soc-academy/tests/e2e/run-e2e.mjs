@@ -12,7 +12,14 @@ import { existsSync, rmSync, readdirSync, mkdirSync } from "node:fs";
 
 const PORT = process.env.E2E_PORT ?? "3210";
 const DB = "file:./data/e2e-test.db";
-const env = { ...process.env, DATABASE_URL: DB, AUTH_MODE: "demo", PORT };
+// Default suite: built-in fictional content only (TITAN_CONTENT=off).
+// `npm run test:content`: checks the imported Titan content on this computer.
+const SUITE = process.argv[2] === "content" ? "content" : "core";
+const env = { ...process.env, DATABASE_URL: DB, AUTH_MODE: "demo", PORT, TITAN_CONTENT: SUITE === "content" ? "on" : "off" };
+if (SUITE === "content" && !existsSync("content-import/generated/titan-catalog.json")) {
+  console.error("✖ No imported Titan content. Run `npm run content:import` first.");
+  process.exit(1);
+}
 
 try {
   await fetch(`http://localhost:${PORT}/login`);
@@ -50,7 +57,7 @@ for (let i = 0; i < 60; i++) {
 
 let code = 1;
 try {
-  const { run } = await import("./flows.mjs");
+  const { run } = await import(SUITE === "content" ? "./titan-content.mjs" : "./flows.mjs");
   code = await run(base);
 } catch (e) {
   console.error(e);

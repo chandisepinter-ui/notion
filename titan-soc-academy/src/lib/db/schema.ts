@@ -104,6 +104,12 @@ export const modules = sqliteTable("modules", {
   estimatedMinutes: integer("estimated_minutes"),
   sortOrder: integer("sort_order").notNull().default(0),
   contentVersion: integer("content_version").notNull().default(1),
+  /** lesson = built-in IMMIX console module · course = imported Titan course module */
+  format: text("format").notNull().default("lesson"),
+  /** builtin (in this repository) | titan-import (generated from Titan files, never committed) */
+  origin: text("origin").notNull().default("builtin"),
+  /** Source status from the Titan catalog, e.g. SOURCE_GROUNDED_PENDING_APPROVAL, PARTIAL_SOURCE, NEEDS_SOURCE. */
+  contentStatus: text("content_status"),
 });
 
 export const competencies = sqliteTable("competencies", {

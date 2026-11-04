@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Initial Academy" };
 
 export default async function AcademyPage() {
   const user = await requirePermission(PERMISSIONS.ACADEMY_ACCESS);
-  const [days, mods] = await Promise.all([getAcademyDays(), getModulesWithProgress(user.id)]);
+  const [days, mods] = await Promise.all([getAcademyDays(), getModulesWithProgress(user.id, { previewAll: user.permissions.has(PERMISSIONS.ACADEMY_PREVIEW_ALL) })]);
   return (
     <>
       <PageHeader
