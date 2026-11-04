@@ -14,6 +14,12 @@ const PORT = process.env.E2E_PORT ?? "3210";
 const DB = "file:./data/e2e-test.db";
 const env = { ...process.env, DATABASE_URL: DB, AUTH_MODE: "demo", PORT };
 
+try {
+  await fetch(`http://localhost:${PORT}/login`);
+  console.error(`✖ Port ${PORT} is already in use. Stop the other server (or set E2E_PORT) and try again.`);
+  process.exit(1);
+} catch {}
+
 for (const f of readdirSync("data")) if (f.startsWith("e2e-test.db")) rmSync(`data/${f}`);
 mkdirSync("tests/e2e/screenshots", { recursive: true });
 

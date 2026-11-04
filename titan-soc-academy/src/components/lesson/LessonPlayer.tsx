@@ -59,7 +59,7 @@ export function LessonPlayer({ initial }: { initial: LessonView }) {
   const stageIdx = view.stages.findIndex((s) => s.key === step.stage);
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       {/* Lesson header */}
       <div className="grid gap-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -114,7 +114,8 @@ function StepRenderer({ view, step, run, pending, moduleKey }: { view: LessonVie
       return <Walkthrough view={view} step={step} run={run} pending={pending} moduleKey={moduleKey} />;
     case "decision":
     case "practice":
-      return <DecisionStep view={view} step={step} run={run} pending={pending} moduleKey={moduleKey} />;
+      // Keyed by item so each alert starts with clean local state.
+      return <DecisionStep key={step.item.id} view={view} step={step} run={run} pending={pending} moduleKey={moduleKey} />;
     case "assessment":
       return <Assessment view={view} step={step} run={run} pending={pending} moduleKey={moduleKey} />;
   }
@@ -124,7 +125,7 @@ function StepRenderer({ view, step, run, pending, moduleKey }: { view: LessonVie
 
 function Briefing({ step, onContinue, pending }: { step: Extract<StepView, { kind: "briefing" }>; onContinue: () => void; pending: boolean }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       <article className="titan-panel grid gap-5 p-6 sm:p-8">
         {step.body.map((b, i) => {
           switch (b.type) {
@@ -177,7 +178,7 @@ function Walkthrough({ view, step, run, pending, moduleKey }: { view: LessonView
   const lastPanel = step.panelIndex === step.panels.length - 1;
   const showAnswer = panel.focus === "decision" || panel.focus === "plan";
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <div className="titan-panel sticky top-20 z-10 flex flex-col gap-4 p-5 sm:flex-row sm:items-center" aria-live="polite">
         <div className="flex-1">
           <p className="titan-eyebrow">Demonstration · {step.panelIndex + 1} of {step.panels.length}</p>
@@ -216,11 +217,6 @@ function DecisionStep({ view, step, run, pending, moduleKey }: { view: LessonVie
   const [response, setResponse] = useState<ItemResponse>(itemState.lastResponse ?? {});
   const [evidence, setEvidence] = useState<EvidenceKey[]>(itemState.evidence);
 
-  useEffect(() => {
-    setResponse(itemState.solved ? itemState.lastResponse ?? {} : itemState.lastResponse ?? {});
-    setEvidence(itemState.evidence);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item.id]);
   useEffect(() => setEvidence((e) => [...new Set([...e, ...itemState.evidence])]), [itemState.evidence]);
 
   const complete = !!response.action && !!response.rule;
@@ -229,14 +225,14 @@ function DecisionStep({ view, step, run, pending, moduleKey }: { view: LessonVie
   const isGuide = step.stage === "guide";
 
   const footer = itemState.solved ? (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       {itemState.lastFeedback && <FeedbackPanel feedback={itemState.lastFeedback} solved />}
       <Button size="xl" className="w-full sm:w-auto sm:justify-self-end" disabled={pending} onClick={() => run(() => actions.continueLesson(moduleKey), { scrollTop: true })}>
         Continue <ArrowRight aria-hidden className="size-5" />
       </Button>
     </div>
   ) : (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       {itemState.lastFeedback && <FeedbackPanel feedback={itemState.lastFeedback} solved={false} />}
       <div className="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
         {!complete && ready && <p className="text-sm text-fg-subtle sm:mr-auto">Choose one action and one rule.</p>}
@@ -271,7 +267,7 @@ function DecisionStep({ view, step, run, pending, moduleKey }: { view: LessonVie
   ) : null;
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       {step.kind === "practice" && (
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <Badge tone="neutral">Alert {step.position + 1} of up to {step.total}</Badge>
@@ -325,13 +321,13 @@ function Assessment({ view, step, run, pending, moduleKey }: { view: LessonView;
   const count = step.items.filter((i) => answered(i.id)).length;
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <div className="titan-panel p-5">
         <p className="text-fg-muted">{step.intro}</p>
         <p className="mt-2 text-sm text-fg-subtle">Attempt {step.attempt}. Your answers save as you go. Nothing is graded until you submit.</p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
         <nav aria-label="Verification alerts" className="titan-panel h-fit p-3">
           <p className="titan-eyebrow mb-2 px-2">Alert queue · {count}/{step.items.length} answered</p>
           <ol className="grid gap-1">
@@ -399,7 +395,7 @@ function Assessment({ view, step, run, pending, moduleKey }: { view: LessonView;
 function AssessmentResultView({ view, step, run, pending, moduleKey }: { view: LessonView; step: Extract<StepView, { kind: "assessment" }>; run: Run; pending: boolean; moduleKey: string }) {
   const r = step.result!;
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       <section className={cn("titan-panel overflow-hidden p-6 sm:p-8")} data-edge="true" aria-labelledby="result-h">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
           <div className={cn("grid size-20 shrink-0 place-items-center rounded-3xl", r.passed ? "bg-success-soft text-success" : "bg-danger-soft text-danger")}>

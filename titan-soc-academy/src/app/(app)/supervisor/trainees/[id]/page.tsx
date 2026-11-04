@@ -31,7 +31,7 @@ export default async function TraineePage({ params }: { params: Promise<{ id: st
   const concepts = Object.entries(wrong.reduce<Record<string, number>>((acc, a) => { if (a.misconceptionLabel) acc[a.misconceptionLabel] = (acc[a.misconceptionLabel] ?? 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1]);
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       <Link href="/supervisor" className="inline-flex items-center gap-1.5 text-sm text-fg-muted hover:text-fg"><ChevronLeft aria-hidden className="size-4" /> All trainees</Link>
       <header>
         <p className="titan-eyebrow">Trainee review</p>
@@ -39,7 +39,7 @@ export default async function TraineePage({ params }: { params: Promise<{ id: st
         <p className="mt-1 text-fg-muted">{trainee.title} · {trainee.shift ?? "No shift"} · {trainee.email}</p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Panel aria-labelledby="mod-h">
           <PanelHeader title="Modules" id="mod-h" />
           <ul className="grid gap-3 p-6">
@@ -81,7 +81,7 @@ export default async function TraineePage({ params }: { params: Promise<{ id: st
         {attempts.length === 0 ? <EmptyState title="No answers yet" /> : <AttemptTable attempts={attempts} caption={`Graded answers for ${trainee.displayName}`} />}
       </Panel>
 
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         <Panel aria-labelledby="notes-h">
           <PanelHeader title="Supervisor notes" id="notes-h" eyebrow="Remediation & coaching record" />
           {notes.length === 0 ? (

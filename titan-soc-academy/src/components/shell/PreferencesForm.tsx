@@ -30,7 +30,7 @@ export function PreferencesForm({ theme, textSize, motion }: { theme: string; te
       setTimeout(() => setSaved(false), 1800);
     });
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       <Row title="Color theme" help="Light, dark, or match your device.">
         <ThemeToggle initial={theme} />
       </Row>

@@ -29,7 +29,7 @@ export default async function AdminPage() {
   return (
     <>
       <PageHeader eyebrow="Administration" title="Academy administration" description="Manage who can do what, review curriculum status and audit administrative changes. All figures below are live counts from the database." />
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {cards.map((c) => (
             <li key={c.href}>

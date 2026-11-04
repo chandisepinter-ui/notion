@@ -14,7 +14,7 @@ export default async function ReferencePage() {
   return (
     <>
       <PageHeader eyebrow="Searchable operational reference" title="Reference Center" description="Approved procedures, system guides and quick references — searchable from one place." />
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <Panel className="p-6">
           <div className="flex items-start gap-4">
             <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-surface-3 text-fg-subtle"><BookLock aria-hidden className="size-5" /></span>

@@ -20,7 +20,7 @@ export default async function ProgressPage() {
   return (
     <>
       <PageHeader eyebrow="Measured, not assumed" title="Progress & Competency" description="Finishing a lesson is not the same as mastering a skill. Each competency moves up only when you demonstrate it, and drops to remediation if verification shows a gap." />
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <Panel aria-labelledby="ladder">
           <PanelHeader title="How competency is measured" id="ladder" eyebrow="The ladder" />
           <ol className="grid gap-3 p-6 sm:grid-cols-5">
@@ -53,7 +53,7 @@ export default async function ProgressPage() {
           </ul>
         </Panel>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Panel aria-labelledby="mods">
             <PanelHeader title="Module progress" id="mods" />
             {started.length === 0 ? (

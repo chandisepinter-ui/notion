@@ -22,7 +22,7 @@ export default async function CurriculumPage() {
   return (
     <>
       <PageHeader eyebrow="Administration" title="Curriculum" description="Modules are defined as structured content. Items flagged below must be approved by Titan subject-matter experts before training is used for certification." />
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <Panel aria-labelledby="pending">
           <PanelHeader title="Pending SME approval" id="pending" eyebrow="Do not treat as policy" />
           <ul className="grid gap-3 p-6">

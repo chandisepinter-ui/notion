@@ -14,7 +14,7 @@ export default async function ProfilePage() {
   return (
     <>
       <PageHeader eyebrow="Account" title="Profile & Preferences" />
-      <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         <Panel>
           <PanelHeader title="Profile" eyebrow={user.isDemo ? "Demonstration account" : "Account"} />
           <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 p-6 text-sm">

@@ -25,7 +25,7 @@ export default async function ArcadePage() {
   return (
     <>
       <PageHeader eyebrow="For low-volume periods" title="Arcade" description="Games that build real job skills through puzzles and simulated work — never at the expense of live duties." />
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <ul className="grid gap-4 lg:grid-cols-3">
           {games.map((g) => {
             const unlock = modules.find((m) => m.key === g.unlockModuleKey);
@@ -51,7 +51,7 @@ export default async function ArcadePage() {
             );
           })}
         </ul>
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Panel>
             <PanelHeader title="How the Arcade will work" eyebrow="Design rules" />
             <ul className="grid gap-2 p-6 text-sm text-fg-muted">

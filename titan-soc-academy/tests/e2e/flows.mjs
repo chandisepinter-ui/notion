@@ -24,7 +24,7 @@ const shot = (page, name) => page.screenshot({ path: `tests/e2e/screenshots/${na
 async function signIn(page, base, name) {
   await page.goto(`${base}/login`);
   await page.getByRole("button", { name: `Sign in as ${name}` }).click();
-  await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+  await page.waitForURL((u) => !u.pathname.startsWith("/login") && u.pathname !== "/");
 }
 
 /** Reviews the required evidence in the investigation console. */
@@ -56,8 +56,10 @@ async function axe(page, label) {
 
 export async function run(base) {
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  // Reduced motion: axe measures contrast mid-animation otherwise.
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: "reduce" });
   const page = await ctx.newPage();
+  page.setDefaultTimeout(10000);
   const consoleErrors = [];
   page.on("pageerror", (e) => consoleErrors.push(e.message));
   page.on("console", (m) => m.type() === "error" && consoleErrors.push(m.text()));
@@ -112,18 +114,18 @@ export async function run(base) {
   const lesson = `${base}/academy/immix-alert-investigation`;
   await test("briefing loads and Continue advances to demonstration", async () => {
     await page.goto(lesson);
-    await page.getByRole("heading", { name: "Evidence before action" }).waitFor();
+    await page.getByRole("heading", { name: "Evidence before action", exact: true }).waitFor();
     await shot(page, "04-briefing");
     await page.getByRole("button", { name: /^Continue/ }).click();
     await page.getByText("Demonstration · 1 of 7").waitFor();
   });
   await test("demonstration steps through all panels (with Back)", async () => {
-    await page.getByRole("button", { name: /^Next/ }).click();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
     await page.getByText("Demonstration · 2 of 7").waitFor();
     await page.getByRole("button", { name: /Back/ }).click();
     await page.getByText("Demonstration · 1 of 7").waitFor();
     for (let i = 1; i < 7; i++) {
-      await page.getByRole("button", { name: /^Next/ }).click();
+      await page.getByRole("button", { name: "Next", exact: true }).click();
       await page.getByText(`Demonstration · ${i + 1} of 7`).waitFor();
     }
     await shot(page, "05-demonstration-final");
@@ -195,7 +197,7 @@ export async function run(base) {
     await page.getByRole("button", { name: /Submit decision/ }).click();
     await page.getByText("Why this is right").waitFor();
     await page.getByRole("button", { name: /^Continue/ }).click();
-    await page.getByRole("heading", { name: "Verification" }).waitFor();
+    await page.getByRole("heading", { name: "Verification", exact: true }).waitFor();
   });
 
   console.log("\nLesson: VERIFY (fail → remediation → retake → pass)");
@@ -219,7 +221,7 @@ export async function run(base) {
     await page.getByText("Answer saved.").waitFor();
     await page.waitForTimeout(400);
     await page.reload();
-    await page.getByRole("heading", { name: "Verification" }).waitFor();
+    await page.getByRole("heading", { name: "Verification", exact: true }).waitFor();
     assert(await page.getByRole("radio", { name: /^Log as authorized/ }).isChecked(), "draft not restored");
   });
   await test("a critical error fails verification even at 80%", async () => {
@@ -305,7 +307,7 @@ export async function run(base) {
   });
   await test("supervisor trainee review is accessible (axe)", async () => axe(page, "supervisor trainee"));
   await test("supervisor can document remediation", async () => {
-    await page.getByLabel("Note").fill("Reviewed the Saturday dock alert together. Re-explained that vests do not establish authorization.");
+    await page.getByRole("textbox", { name: "Note" }).fill("Reviewed the Saturday dock alert together. Re-explained that vests do not establish authorization.");
     await page.getByRole("button", { name: "Save note" }).click();
     await page.getByText("Note saved.").waitFor();
     await page.getByText(/Re-explained that vests/).first().waitFor();

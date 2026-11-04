@@ -29,7 +29,7 @@ export default async function DashboardPage() {
   const started = comps.filter((c) => c.level !== "NOT_STARTED");
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       <div>
         <p className="titan-eyebrow">Operator dashboard</p>
         <h1 className="mt-2 text-[1.75rem] font-semibold tracking-[-0.025em] text-fg sm:text-[2rem]">Welcome, {firstName}.</h1>
@@ -58,11 +58,11 @@ export default async function DashboardPage() {
         </div>
       </Panel>
 
-      <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         {/* Academy progress */}
         <Panel aria-labelledby="academy-progress">
           <PanelHeader eyebrow="Seven-day Initial Academy" title="Academy progress" id="academy-progress" actions={<Link href="/academy" className="text-sm font-medium text-accent-strong hover:underline">Full roadmap</Link>} />
-          <div className="grid gap-6 p-6 sm:grid-cols-[auto_1fr] sm:items-center">
+          <div className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-[auto_1fr] sm:items-center">
             <ProgressRing value={total ? (passed / total) * 100 : 0} size={112} stroke={8} label="Academy modules verified">
               <div>
                 <p className="text-2xl font-semibold text-fg">{passed}<span className="text-base text-fg-subtle">/{total}</span></p>

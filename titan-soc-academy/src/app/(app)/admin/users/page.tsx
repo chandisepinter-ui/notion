@@ -29,7 +29,7 @@ export default async function UsersPage() {
   return (
     <>
       <PageHeader eyebrow="Administration" title="Accounts & Roles" description="Grant or remove roles and assign trainees to supervisors. Changes take effect on the person’s next page load and are recorded in the audit log." />
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <Panel aria-labelledby="accts">
           <PanelHeader title="Accounts" id="accts" eyebrow={`${users.length} accounts`} />
           <ul className="divide-y divide-line">

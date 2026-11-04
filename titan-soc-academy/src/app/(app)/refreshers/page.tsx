@@ -13,7 +13,7 @@ export default async function RefreshersPage() {
   return (
     <>
       <PageHeader eyebrow="Continuing education" title="Refreshers" description="Short assignments from your supervisor or scheduled reinforcement of skills you have not used recently." />
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <Panel>
           <EmptyState icon={<RefreshCw className="size-5" />} title="No refresher assignments">Assignments will appear here when supervisors can assign them.</EmptyState>
         </Panel>

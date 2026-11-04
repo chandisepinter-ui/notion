@@ -33,7 +33,7 @@ export default async function SupervisorPage() {
         title="Trainee oversight"
         description={viewAll ? "You can see every operator in training." : "You see operators assigned to you. Assignments are managed by an administrator."}
       />
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <div className="grid gap-4 sm:grid-cols-3">
           <Stat label="Trainees visible to you" value={rows.length} />
           <Stat label="Need remediation" value={needsAttention.length} tone={needsAttention.length ? "danger" : undefined} />

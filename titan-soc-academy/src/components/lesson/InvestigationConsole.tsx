@@ -120,7 +120,7 @@ export function InvestigationConsole({
   const highlight = (k: string) => demo?.focus === k;
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       {/* Alert header */}
       <div className={cn("titan-panel flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4", highlight("alert") && "ring-2 ring-accent")}>
         <div className="flex items-center gap-3">
@@ -162,7 +162,7 @@ export function InvestigationConsole({
         </div>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-[1.25fr_1fr]">
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
         {/* Camera */}
         <section aria-label="Event clip" className={cn("titan-panel overflow-hidden", highlight("clip") && "ring-2 ring-accent")}>
           <div className="relative bg-black">
@@ -213,7 +213,7 @@ export function InvestigationConsole({
         </section>
 
         {/* Site instructions */}
-        <section aria-label="Site instructions" className={cn("titan-panel flex min-h-[320px] flex-col overflow-hidden", (highlight("overview") || highlight("schedule") || highlight("plan")) && "ring-2 ring-accent")}>
+        <section aria-label="Site instructions" className={cn("titan-panel flex min-h-[320px] flex-col overflow-hidden xl:h-[560px]", (highlight("overview") || highlight("schedule") || highlight("plan")) && "ring-2 ring-accent")}>
           <div role="tablist" aria-label="Site instructions" className="flex gap-1 overflow-x-auto border-b border-line p-1.5">
             {TABS.map(({ key, icon: Icon }, idx) => (
               <button
@@ -249,7 +249,7 @@ export function InvestigationConsole({
               </div>
             )}
             {tab === "overview" && (
-              <div className="grid gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <p className="text-base font-semibold text-fg">{site.name}</p>
                   <p className="text-fg-subtle">{site.siteCode} · {site.siteType} · {site.address}</p>
