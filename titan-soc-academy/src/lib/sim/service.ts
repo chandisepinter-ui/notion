@@ -37,6 +37,8 @@ export function runView(run: { id: string; mode: string; moduleKey: string | nul
     status: run.status,
     scenario: sanitizeScenario(entry.scenario),
     outcomes: entry.config.outcomes,
+    subOutcomes: entry.config.subOutcomes ?? {},
+    routingGroups: entry.config.routingGroups ?? ["Routing Group 1"],
     /** Local camera stills per camera (owner-authorized, never committed), or null for drawn scenes. */
     media: mediaForScenario(entry.scenario),
     /** Operator (SOC) time zone and each site's zone, for IMMIX "Site Time". */

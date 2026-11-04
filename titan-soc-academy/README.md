@@ -99,21 +99,26 @@ After dark (scenario time 18:00–07:00) day stills switch to infrared black-and
 do. To pin a specific still to a camera, create `content-import\media\immix\cameras.json`, e.g.
 `{ "SITE-ID/CAM 02": "mv-04.jpg" }`. Without stills the simulator uses drawn scenes.
 
-### Not yet exact (no reference screenshot)
+### Screens and how they behave
 
-Details window · Audio / talk-down panel (live: microphone; training: type what you would say) ·
-Scripts, Arming/Disarming, Problems and Audit Event tabs · Raise · the Dashboard/Setup/Reports/Events/
-Cameras/Walls pages. These are marked "not simulated" or approximate until screenshots are provided.
+Built from the IMMIX screenshots in SharePoint (Simulation Assets › IMMIX; Dispatch Center › How To Videos ›
+Screenshots › Immix: *Immix Tabs*, *Close Outs*, *E-Care*):
 
-* Time runs at real speed. *Skip ahead* jumps to the next scheduled event (e.g. an E-CARE reconnect);
-  it is disabled while MultiView is open, because absence must be watched live.
-* Clips count as reviewed only when played start to finish at 1.00x.
-* Runs are scored against the scenario's own criteria: 90% with no critical misses. Checks that need
-  Computer 2 are listed as *not evaluated* and left out of the score.
-* **Practice** (from the Simulator page) and **guided** runs (from a module's practice step) show the
-  tasks and hints. **Mastery** runs (from a mastery check) show neither; a module whose mastery check
-  lists a playable scenario requires a passing mastery run before the questions can be submitted.
-* A built-in **fictional practice scenario** works on any computer, with or without imported content.
+* **Close Event** — level-1 *Outcome* (eCare, Highlander Power Alarm, Incident/Action Taken, IT, Nuisance,
+  Off Site Activity, On Site Activity) then the level-2 *Select Outcome* list for that category.
+* **Raise** — "Raise to routing group". **Details** — separate window: Site Details, Call List, Site Staff,
+  Maintainer, Arming Schedule. There are no call buttons: calls are made on the phone and documented in
+  **Audit Event › Notification** (Subscriber / Police / Fire Dept, No Answer / Call Made, Additional Details).
+  *Close Event* is disabled while Audit Event is open, as on the live system.
+* **Arming/Disarming**, **Problems** (Add a new problem), **Notes › Add new note** (Note Details).
+* Site Time follows the site's time zone (from its address); operator time zone = `SOC_TIME_ZONE`.
+
+Not simulated (shown as such): Dashboard/Setup/Reports/Events/Cameras/Walls pages, Edge Devices, Disarm Site
+effects, and live microphone audio (in training you type what you would say).
+
+The live close-out lists are read from `content-import\reference\immix\outcomes.json` (local). Scenario
+outcome *Audio Talk Down Threat Eliminated* is matched to *Incident/Action Taken › Successful Audio Talkdown*
+pending your ruling on conflict C12.
 
 ## Deciding source conflicts
 

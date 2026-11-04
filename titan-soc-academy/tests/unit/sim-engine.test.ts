@@ -1,6 +1,7 @@
 /** Simulator engine tests — fictional built-in scenario plus small synthetic manifests. */
 import { describe, expect, it } from "vitest";
 import {
+  outcomeAccepted,
   absenceVerified, applyAction, clipWatched, evaluate, initialSimState, nextTimelineEvent, playability, sanitizeScenario, SimError, subjectOnCamera,
 } from "@/lib/sim/engine";
 import { BUILTIN_IMMIX_CONFIG as cfg, BUILTIN_SCENARIOS } from "@/content/sim/builtin-scenarios";
@@ -18,7 +19,7 @@ const perfect: SimAction[] = [
   { type: "PLAY_TALKDOWN", alertId: "A1", cameraId: "CAM 04 Speaker", script: scn.sites[0].talkdownScript!, usedSiteScript: true, at: 40 },
   { type: "MULTIVIEW_OPEN", alertId: "A1", at: 45 },
   { type: "MULTIVIEW_CLOSE", alertId: "A1", at: 40 + 30 + 125 },
-  { type: "CLOSE", alertId: "A1", outcome: "Talkdown Successful", note: "Talkdown played; MultiView showed no one for 2 minutes.", at: 200 },
+  { type: "CLOSE", alertId: "A1", outcome: "Action Taken", subOutcome: "Talkdown Successful", note: "Talkdown played; MultiView showed no one for 2 minutes.", at: 200 },
 ];
 
 describe("simulator engine", () => {
@@ -48,7 +49,7 @@ describe("simulator engine", () => {
   });
 
   it("closing as a successful talkdown before 2 minutes of absence is a critical error", () => {
-    const early = perfect.slice(0, 7).concat([{ type: "CLOSE", alertId: "A1", outcome: "Talkdown Successful", note: "talkdown multiview", at: 100 }]);
+    const early = perfect.slice(0, 7).concat([{ type: "CLOSE", alertId: "A1", outcome: "Action Taken", subOutcome: "Talkdown Successful", note: "talkdown multiview", at: 100 }]);
     const st = run(early);
     expect(absenceVerified(scn, st)).toBe(false);
     const r = evaluate(scn, cfg, st);
@@ -117,5 +118,24 @@ describe("timeline (E-CARE)", () => {
   it("closing before reconnect is flagged", () => {
     const st = applyAction(ecare, ecfg, initialSimState(ecare), { type: "CLOSE", alertId: "A1", outcome: "eCare", note: "", at: 30 });
     expect(st.errors[0].code).toBe("ECARE_CLOSE_UNRESOLVED");
+  });
+});
+
+describe("two-level close-out (live IMMIX lists)", () => {
+  it("requires the second-level outcome when the category has one", () => {
+    expect(() => run([{ type: "CLOSE", alertId: "A1", outcome: "Action Taken", note: "", at: 5 }])).toThrow(/second list/);
+  });
+  it("accepts a category, a sub-outcome, or an alias (pending C12)", () => {
+    const live = { outcomes: ["Incident/Action Taken", "Off Site Activity"], subOutcomes: {}, aliases: { "Audio Talk Down Threat Eliminated": ["Incident/Action Taken > Successful Audio Talkdown"] }, defaultTalkdown: null };
+    expect(outcomeAccepted(live, ["Off Site Activity"], "Off Site Activity", "Person Seen Off Site")).toBe(true);
+    expect(outcomeAccepted(live, ["Audio Talk Down Threat Eliminated"], "Incident/Action Taken", "Successful Audio Talkdown")).toBe(true);
+    expect(outcomeAccepted(live, ["Audio Talk Down Threat Eliminated"], "Incident/Action Taken", "Police Responded")).toBe(false);
+  });
+  it("a documented call (Notification: Call Made) counts as escalating an off-site alert", () => {
+    const s: SimScenario = { ...scn, escalationWithoutBasis: { actionTypes: ["PLAY_TALKDOWN", "CALL_START"], alertId: "A1", code: "ESCALATION_WITHOUT_BASIS" } };
+    const noAnswer = run([{ type: "NOTIFICATION", alertId: "A1", contactType: "Subscriber", result: "No Answer", details: "", at: 5 }], s);
+    expect(noAnswer.errors).toHaveLength(0);
+    const made = run([{ type: "NOTIFICATION", alertId: "A1", contactType: "Police", result: "Call Made", details: "called PD", at: 5 }], s);
+    expect(made.errors[0]?.code).toBe("ESCALATION_WITHOUT_BASIS");
   });
 });

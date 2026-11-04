@@ -59,7 +59,16 @@ export type SimScenario = {
 };
 
 /** Settings that come with the scenario catalog (outcome list, default talkdown). */
-export type ImmixConfig = { outcomes: string[]; defaultTalkdown: string | null };
+export type ImmixConfig = {
+  /** Level-1 Close Event outcomes, in display order. */
+  outcomes: string[];
+  /** Level-2 options per level-1 outcome (live IMMIX shows a second "Select Outcome" list). */
+  subOutcomes?: Record<string, string[]>;
+  /** Scenario outcome labels that equal a live "Level1 > Level2" option. */
+  aliases?: Record<string, string[]>;
+  defaultTalkdown: string | null;
+  routingGroups?: string[];
+};
 
 /* ------------------------------------------------------------------ */
 /* Operator actions (sent by the workstation)                          */
@@ -76,7 +85,12 @@ export type SimAction =
   | { type: "PLAY_TALKDOWN"; alertId: string; cameraId: string; script: string; usedSiteScript: boolean; at: number }
   | { type: "CALL_START"; alertId: string; contactId: string; at: number }
   | { type: "PARK"; alertId: string; minutes: number; note: string; at: number }
-  | { type: "CLOSE"; alertId: string; outcome: string; note: string; at: number }
+  | { type: "CLOSE"; alertId: string; outcome: string; subOutcome?: string; note: string; at: number }
+  | { type: "RAISE"; alertId: string; group: string; at: number }
+  | { type: "AUDIT_NOTE"; alertId: string; kind: string; note: string; at: number }
+  | { type: "NOTIFICATION"; alertId: string; contactType: "Subscriber" | "Police" | "Fire Dept"; contactId?: string; result: "No Answer" | "Call Made"; details: string; at: number }
+  | { type: "ADD_PROBLEM"; alertId: string; title: string; text: string; at: number }
+  | { type: "DISARM_SITE"; alertId: string; at: number }
   | { type: "BACK_TO_QUEUE"; alertId: string; at: number }
   | { type: "ACK_ALARMS"; alertId: string; at: number }
   | { type: "ADD_NOTE"; alertId: string; note: string; validFrom?: string; validTo?: string; at: number }
@@ -88,7 +102,7 @@ export type SimState = {
   /** Simulated seconds since scenario start. */
   clock: number;
   actions: SimAction[];
-  alerts: Record<string, { status: AlertStatus; parkedAt?: number; parkMinutes?: number; reconnected?: boolean; outcome?: string; note?: string; closedAt?: number }>;
+  alerts: Record<string, { status: AlertStatus; parkedAt?: number; parkMinutes?: number; reconnected?: boolean; outcome?: string; subOutcome?: string; note?: string; closedAt?: number }>;
   errors: { code: string; alertId?: string; at: number; message: string }[];
   finished: boolean;
 };

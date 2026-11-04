@@ -6,8 +6,15 @@
 import type { ImmixConfig, SimScenario } from "@/lib/sim/types";
 
 export const BUILTIN_IMMIX_CONFIG: ImmixConfig = {
-  outcomes: ["False Alarm", "Off Site Activity", "On Site Activity", "Talkdown Successful", "Police Dispatched"],
+  outcomes: ["Action Taken", "False Alarm", "Off Site Activity", "On Site Activity"],
+  subOutcomes: {
+    "Action Taken": ["Talkdown Successful", "Police Dispatched"],
+    "False Alarm": ["Animal", "Weather", "Debris"],
+    "Off Site Activity": ["Person Off Site", "Vehicle Off Site"],
+    "On Site Activity": ["Person - All Clear", "Vehicle - All Clear"],
+  },
   defaultTalkdown: null,
+  routingGroups: ["Practice Routing Group"],
 };
 
 export const BUILTIN_SCENARIOS: SimScenario[] = [

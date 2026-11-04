@@ -20,17 +20,22 @@ import { finishSimRun, sendSimActions } from "@/lib/sim/actions";
 import type { RunView } from "@/lib/sim/service";
 import { ImmixCamera } from "@/components/immix/ImmixCamera";
 import { cn } from "@/lib/cn";
+import { C, FONT, IxButton, NotSimulated, GridTable, Modal, Footer, ixField, ixArea } from "@/components/immix/ui";
+import { ArmingDisarmingTab, AuditEventTab, CloseEventModal, NoteDetailsModal, ProblemsTab, RaiseModal, SiteDetailsContent } from "@/components/immix/ImmixScreens";
+
+/** Police / fire numbers as written in a site's notes, e.g. "Police non-emergency (training): (555) 010-0911". */
+function phoneFromNotes(site: { notes: string[] }, word: RegExp): string | null {
+  for (const n of site.notes) if (word.test(n)) { const m = n.match(/\(?\d{3}\)?[\s.-]?\d{3}-\d{4}/); if (m) return m[0]; }
+  return null;
+}
+function tzLong(tz: string | null) {
+  if (!tz) return "Site time zone not on file";
+  return new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "long" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value ?? tz;
+}
 import { toSiteTime } from "@/lib/sim/timezones";
 
 type Alert = RunView["scenario"]["alerts"][number];
 type Site = SimScenario["sites"][number];
-
-/* IMMIX palette (measured from the reference screenshots) */
-const C = {
-  page: "#343434", body: "#3c3c3c", tabbar: "#1f1f1f", tabSel: "#505050", dark: "#282828", hdr: "#232424",
-  btnFrom: "#8f9191", btnTo: "#6a6c6c", red: "#b84141", blue: "#006699", alarmRed: "#cc1919", orange: "#cc630d", process: "#0151a3",
-};
-const FONT = "'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
 
 /* ------------------------------------------------------------------ */
 /* Time helpers                                                        */
@@ -49,8 +54,6 @@ const immixDate = (d: Date) => {
 };
 const mmss = (s: number) => `${two(Math.floor(s / 60))}:${two(Math.floor(s % 60))}`;
 
-/** Outcome → sub-outcome lists seen in the live IMMIX Close Event dialog. Others have none on file. */
-const SUB_OUTCOMES: Record<string, string[]> = { eCare: ["eCare Failure", "eCare Reconnected"] };
 
 /* ------------------------------------------------------------------ */
 
@@ -241,27 +244,6 @@ export function ImmixWorkstation({ initial, operatorName }: { initial: RunView; 
 /* Shared IMMIX controls                                               */
 /* ------------------------------------------------------------------ */
 
-function IxButton({ children, className, ...p }: React.ComponentProps<"button">) {
-  return (
-    <button
-      type="button"
-      {...p}
-      className={cn("h-[27px] rounded-[2px] border border-[#9e9e9e] px-3 text-[13px] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] hover:brightness-110 disabled:cursor-default disabled:text-[#bdbdbd] disabled:brightness-90", className)}
-      style={{ background: `linear-gradient(${C.btnFrom}, ${C.btnTo})` }}
-    >
-      {children}
-    </button>
-  );
-}
-
-function NotSimulated({ text, onClose }: { text: string; onClose: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onClose, 2500);
-    return () => clearTimeout(t);
-  }, [onClose]);
-  return <div role="status" className="fixed left-1/2 top-16 z-[60] -translate-x-1/2 rounded bg-black/85 px-4 py-2 text-xs text-white">{text}</div>;
-}
-
 /* ------------------------------------------------------------------ */
 /* Tasks (guided / practice)                                           */
 /* ------------------------------------------------------------------ */
@@ -424,7 +406,9 @@ function EventScreen({ alert, view, scn, state, clock, now, send, operatorName }
   const [live, setLive] = useState(alert.cameraId);
   const [connecting, setConnecting] = useState(true);
   const [search, setSearch] = useState("");
-  const [modal, setModal] = useState<null | "details" | "park" | "close" | "talkdown" | "note">(null);
+  const [modal, setModal] = useState<null | "details" | "park" | "close" | "talkdown" | "note" | "raise">(null);
+  const policePhone = phoneFromNotes(site, /police/i);
+  const firePhone = phoneFromNotes(site, /fire/i);
   const [overlay, setOverlay] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const offSiteCams = useMemo(() => new Set(scn.alerts.filter((a) => Object.values(a.clips ?? {}).some((c) => c?.beats.some((b) => !b.onSite))).map((a) => a.cameraId)), [scn]);
@@ -450,6 +434,12 @@ function EventScreen({ alert, view, scn, state, clock, now, send, operatorName }
     }
   };
   const talk = () => setModal("talkdown");
+  // Details opens its own window, like IMMIX; falls back to an in-page dialog if pop-ups are blocked.
+  const openDetails = () => {
+    send({ type: "DETAILS_VIEWED", alertId: alert.id, at: clock });
+    const w = window.open(`/sim/${view.runId}/details`, `immix-details-${view.runId}`, "popup,width=760,height=580");
+    if (!w) setModal("details");
+  };
   const cams = site.cameras.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
@@ -458,11 +448,11 @@ function EventScreen({ alert, view, scn, state, clock, now, send, operatorName }
       <div className="flex flex-wrap items-center gap-1.5 px-2 py-2">
         <ShieldCheck aria-hidden className="size-6 fill-[#4caf50] text-[#2e7d32]" />
         <h1 className="mr-auto text-[24px] font-semibold text-white">{site.name}</h1>
-        <IxButton onClick={() => setNote("Raise is not simulated in training.")}>Raise</IxButton>
-        <IxButton onClick={() => { setModal("details"); send({ type: "DETAILS_VIEWED", alertId: alert.id, at: clock }); }}>Details</IxButton>
+        <IxButton onClick={() => setModal("raise")}>Raise</IxButton>
+        <IxButton onClick={openDetails}>Details</IxButton>
         <IxButton onClick={openMultiview}>MultiView</IxButton>
         <IxButton onClick={() => setModal("park")}>Park Event</IxButton>
-        <IxButton onClick={() => setModal("close")}>Close Event</IxButton>
+        <IxButton onClick={() => setModal("close")} disabled={tab === "Audit Event"}>Close Event</IxButton>
         <button type="button" onClick={() => setNote("Help is not simulated in training.")} className="ml-1 text-[#cfcfcf] hover:text-white">
           <CircleHelp aria-hidden className="size-5" /><span className="sr-only">Help</span>
         </button>
@@ -523,7 +513,15 @@ function EventScreen({ alert, view, scn, state, clock, now, send, operatorName }
           ))}
         </div>
         <div role="tabpanel" className="flex-1 overflow-auto p-4">
-          <TabContent tab={tab} alert={alert} as={as} site={site} state={state} startLocal={view.scenario.startLocal} operatorName={operatorName} toSite={(d) => toSiteTime(d, view.socTimeZone, view.siteTimeZones[site.id] ?? null)} onSetOutcome={() => setModal("close")} onAck={() => send({ type: "ACK_ALARMS", alertId: alert.id, at: clock })} onAddNote={() => setModal("note")} />
+          <TabContent tab={tab} alert={alert} as={as} site={site} state={state} startLocal={view.scenario.startLocal} operatorName={operatorName} toSite={(d) => toSiteTime(d, view.socTimeZone, view.siteTimeZones[site.id] ?? null)} onSetOutcome={() => setModal("close")} onAck={() => send({ type: "ACK_ALARMS", alertId: alert.id, at: clock })} onAddNote={() => setModal("note")}
+            extra={{
+              tzLabel: tzLong(view.siteTimeZones[site.id] ?? null),
+              policePhone, firePhone,
+              onDisarm: () => { send({ type: "DISARM_SITE", alertId: alert.id, at: clock }); setNote("Disarm Site recorded. Disarming is not simulated in training."); },
+              onAuditNote: (kind, n) => send({ type: "AUDIT_NOTE", alertId: alert.id, kind, note: n, at: clock }),
+              onNotification: (x) => send({ type: "NOTIFICATION", alertId: alert.id, ...x, at: clock }),
+              onAddProblem: (title, text) => send({ type: "ADD_PROBLEM", alertId: alert.id, title, text, at: clock }),
+            }} />
         </div>
       </div>
 
@@ -533,10 +531,11 @@ function EventScreen({ alert, view, scn, state, clock, now, send, operatorName }
           <MultiviewGrid site={site} scn={scn} state={state} clock={clock} now={now} media={view.media} offSiteCams={offSiteCams} ecareFailed={ecareFailed} />
         </div>
       )}
-      {modal === "details" && <DetailsModal site={site} onClose={() => setModal(null)} onCall={(c) => send({ type: "CALL_START", alertId: alert.id, contactId: c, at: clock })} />}
+      {modal === "details" && <Modal title={`Site Details : ${site.name}`} onClose={() => setModal(null)} width={753}><SiteDetailsContent site={site} policePhone={policePhone} firePhone={firePhone} /></Modal>}
+      {modal === "raise" && <RaiseModal groups={view.routingGroups} onClose={() => setModal(null)} onRaise={(g) => { if (send({ type: "RAISE", alertId: alert.id, group: g, at: clock })) setModal(null); }} />}
       {modal === "park" && <ParkModal onClose={() => setModal(null)} onPark={(minutes, n) => { if (send({ type: "PARK", alertId: alert.id, minutes, note: n, at: clock })) setModal(null); }} />}
-      {modal === "close" && <CloseModal outcomes={view.outcomes} onClose={() => setModal(null)} onSubmit={(outcome, n) => { if (send({ type: "CLOSE", alertId: alert.id, outcome, note: n, at: clock })) setModal(null); }} />}
-      {modal === "note" && <NoteModal onClose={() => setModal(null)} onSave={(n, from, to) => { if (send({ type: "ADD_NOTE", alertId: alert.id, note: n, validFrom: from || undefined, validTo: to || undefined, at: clock })) setModal(null); }} />}
+      {modal === "close" && <CloseEventModal outcomes={view.outcomes} subOutcomes={view.subOutcomes} onClose={() => setModal(null)} onSubmit={(outcome, sub, n) => { if (send({ type: "CLOSE", alertId: alert.id, outcome, subOutcome: sub, note: n, at: clock })) setModal(null); }} />}
+      {modal === "note" && <NoteDetailsModal onClose={() => setModal(null)} onSave={(n, from, to) => { if (send({ type: "ADD_NOTE", alertId: alert.id, note: n, validFrom: from || undefined, validTo: to || undefined, at: clock })) setModal(null); }} />}
       {modal === "talkdown" && (
         <TalkdownModal
           site={site}
@@ -661,25 +660,17 @@ function EventClip({ alert, site, view, clock, send, offSite }: { alert: Alert; 
 /* Bottom tabs                                                         */
 /* ------------------------------------------------------------------ */
 
-function GridTable({ head, rows, caption }: { head: string[]; rows: React.ReactNode[][]; caption: string }) {
-  return (
-    <table className="w-full border border-[#555] text-left text-[13px]">
-      <caption className="sr-only">{caption}</caption>
-      <thead className="text-[14px] font-bold text-white" style={{ background: C.hdr }}>
-        <tr>{head.map((h, i) => <th key={i} scope="col" className="border-r border-[#555] px-1.5 py-1">{h}</th>)}</tr>
-      </thead>
-      <tbody>
-        {rows.map((r, i) => (
-          <tr key={i} className={cn("border-t border-[#555]", i % 2 ? "bg-[#454545]" : "bg-[#3c3c3c]")}>
-            {r.map((c, j) => <td key={j} className="px-1.5 py-1.5 align-top">{c}</td>)}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
+type TabExtra = {
+  tzLabel: string;
+  policePhone: string | null;
+  firePhone: string | null;
+  onDisarm: () => void;
+  onAuditNote: (kind: string, note: string) => void;
+  onNotification: (n: { contactType: "Subscriber" | "Police" | "Fire Dept"; contactId?: string; result: "No Answer" | "Call Made"; details: string }) => void;
+  onAddProblem: (title: string, text: string) => void;
+};
 
-function TabContent({ tab, alert, as, site, state, startLocal, operatorName, toSite, onSetOutcome, onAck, onAddNote }: { tab: Tab; alert: Alert; as: SimState["alerts"][string]; site: Site; state: SimState; startLocal: string; operatorName: string; toSite: (d: Date) => Date; onSetOutcome: () => void; onAck: () => void; onAddNote: () => void }) {
+function TabContent({ tab, alert, as, site, state, startLocal, operatorName, toSite, onSetOutcome, onAck, onAddNote, extra }: { tab: Tab; alert: Alert; as: SimState["alerts"][string]; site: Site; state: SimState; startLocal: string; operatorName: string; toSite: (d: Date) => Date; onSetOutcome: () => void; onAck: () => void; onAddNote: () => void; extra: TabExtra }) {
   // Site Time = the site's local time (differs from operator time only across time zones).
   const siteTime = (d: Date) => immixDate(toSite(d));
   switch (tab) {
@@ -690,7 +681,7 @@ function TabContent({ tab, alert, as, site, state, startLocal, operatorName, toS
         rows.push([immixDate(d), siteTime(d), <span key="p" className="block text-right">0</span>, `Ecare successfully reconnected to '${alert.cameraId}'`, "", <button key="o" type="button" onClick={onSetOutcome} className="text-[#3fa9f5] hover:underline">Set Outcome</button>]);
       }
       const d = wall(startLocal, alert.atMin * 60);
-      rows.push([immixDate(d), siteTime(d), <span key="p" className="block text-right">{alert.type === "ECARE_FAILURE" ? 0 : 600}</span>, alert.details, alert.type === "ECARE_FAILURE" ? "" : alert.cameraId, <button key="o" type="button" onClick={onSetOutcome} className="text-[#3fa9f5] hover:underline">Set Outcome</button>]);
+      rows.push([immixDate(d), siteTime(d), <span key="p" className="block text-right">{alert.type === "ECARE_FAILURE" ? 0 : 600}</span>, alert.details, alert.type === "ECARE_FAILURE" ? "" : <span key="lc" className="font-bold text-[#00abfd]">{alert.cameraId}</span>, <button key="o" type="button" onClick={onSetOutcome} className="text-[#3fa9f5] hover:underline">Set Outcome</button>]);
       return (
         <div>
           <IxButton onClick={onAck} className="mb-1.5">Acknowledge All Alarms</IxButton>
@@ -712,6 +703,11 @@ function TabContent({ tab, alert, as, site, state, startLocal, operatorName, toS
         if (a.type === "CALL_START") text = "Call started from call list.";
         if (a.type === "PARK") text = `Event Parked for ${a.minutes} minute(s).${a.note ? ` Note: ${a.note}` : ""}`;
         if (a.type === "ADD_NOTE") text = `Note added: ${a.note}`;
+        if (a.type === "RAISE") text = `Event raised to ${a.group}.`;
+        if (a.type === "AUDIT_NOTE") text = `${a.kind} : ${a.note}`;
+        if (a.type === "NOTIFICATION") text = `Notification : ${a.contactType}${a.contactId ? ` (${site.callList.find((c) => c.id === a.contactId)?.name ?? ""})` : ""} - ${a.result}${a.details ? ` - ${a.details}` : ""}`;
+        if (a.type === "ADD_PROBLEM") text = `Problem added: ${a.title}`;
+        if (a.type === "DISARM_SITE") text = "Disarm Site selected.";
         if (text) entries.push({ at: a.at, text });
       }
       entries.sort((x, y) => y.at - x.at);
@@ -729,7 +725,7 @@ function TabContent({ tab, alert, as, site, state, startLocal, operatorName, toS
       ) : <p>No previous events.</p>;
     }
     case "Arming/Disarming":
-      return <GridTable caption="Arming schedule" head={["Schedule"]} rows={[[site.armingSchedule ?? "No arming schedule on file."]]} />;
+      return <ArmingDisarmingTab site={site} tzLabel={extra.tzLabel} onDisarm={extra.onDisarm} />;
     case "Notes": {
       const added = state.actions.filter((a): a is Extract<SimAction, { type: "ADD_NOTE" }> => a.type === "ADD_NOTE");
       const rows: React.ReactNode[][] = [
@@ -747,10 +743,12 @@ function TabContent({ tab, alert, as, site, state, startLocal, operatorName, toS
       return <MapsTab site={site} />;
     case "Scripts":
       return site.talkdownScript ? <GridTable caption="Scripts" head={["Script"]} rows={[[site.talkdownScript]]} /> : <p>No site-specific script on file.</p>;
-    case "Problems":
-      return <GridTable caption="Problems" head={["Time", "Problem", "Status"]} rows={[]} />;
+    case "Problems": {
+      const problems = state.actions.filter((a): a is Extract<SimAction, { type: "ADD_PROBLEM" }> => a.type === "ADD_PROBLEM").map((a) => ({ at: immixDate(wall(startLocal, a.at)), title: a.title, text: a.text, by: operatorName }));
+      return <ProblemsTab problems={problems} onAdd={extra.onAddProblem} />;
+    }
     case "Audit Event":
-      return <p className="text-[#cfcfcf]">Audit Event is not simulated in training.</p>;
+      return <AuditEventTab site={site} policePhone={extra.policePhone} firePhone={extra.firePhone} onAuditNote={extra.onAuditNote} onNotification={extra.onNotification} />;
   }
 }
 
@@ -813,61 +811,6 @@ export function MultiviewGrid({ site, scn, state, clock, now, media, offSiteCams
 /* Dialogs (IMMIX style)                                               */
 /* ------------------------------------------------------------------ */
 
-function Modal({ title, onClose, children, width = 506 }: { title: string; onClose: () => void; children: React.ReactNode; width?: number }) {
-  useEffect(() => {
-    const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
-  }, [onClose]);
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4">
-      <div role="dialog" aria-modal="true" aria-label={title} className="w-full border border-[#555] shadow-2xl" style={{ maxWidth: width, background: C.page }}>
-        <div className="flex items-center justify-between bg-[#1f1f1f] px-3 py-2">
-          <h2 className="text-[13px] font-bold text-white">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close dialog" className="text-white"><X className="size-4" /></button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-const ixField = "w-full rounded-[6px] border-2 border-[#d0d0d0] bg-[#343434] px-2 py-0.5 text-[12px] text-white";
-const ixArea = "w-full border border-[#777] bg-[#343434] p-2 text-[13px] text-white";
-function Footer({ children }: { children: React.ReactNode }) {
-  return <div className="flex justify-end gap-1.5 border-t border-[#555] px-3 py-3">{children}</div>;
-}
-
-function CloseModal({ outcomes, onClose, onSubmit }: { outcomes: string[]; onClose: () => void; onSubmit: (outcome: string, note: string) => void }) {
-  const [outcome, setOutcome] = useState("");
-  const [sub, setSub] = useState("");
-  const [note, setNote] = useState("");
-  const subs = SUB_OUTCOMES[outcome];
-  return (
-    <Modal title="Close Event" onClose={onClose}>
-      <div className="p-3 text-[12px]">
-        <label className="block font-bold text-white"><span className="block">Outcome :</span>
-          <select aria-label="Outcome" value={outcome} onChange={(e) => { setOutcome(e.target.value); setSub(""); }} className={cn(ixField, "mt-1 max-w-[298px]")}>
-            <option value="">Select Outcome</option>
-            {outcomes.map((o) => <option key={o} value={o}>{o}</option>)}
-          </select>
-        </label>
-        {subs && (
-          <select aria-label="Sub-outcome" value={sub} onChange={(e) => setSub(e.target.value)} className={cn(ixField, "mt-1.5 max-w-[192px]")}>
-            <option value="">Select Outcome</option>
-            {subs.map((o) => <option key={o} value={o}>{o}</option>)}
-          </select>
-        )}
-        <textarea aria-label="Note" value={note} maxLength={5000} onChange={(e) => setNote(e.target.value)} rows={7} className={cn(ixArea, "mt-3")} />
-        <p className="font-bold text-white">{note.length} / 5000</p>
-      </div>
-      <Footer>
-        <IxButton disabled={!outcome || (!!subs && !sub)} onClick={() => onSubmit(outcome, sub ? `${sub}. ${note}` : note)}>Ok</IxButton>
-        <IxButton onClick={onClose}>Cancel</IxButton>
-      </Footer>
-    </Modal>
-  );
-}
-
 function ParkModal({ onClose, onPark }: { onClose: () => void; onPark: (minutes: number, note: string) => void }) {
   const [h, setH] = useState("");
   const [m, setM] = useState("");
@@ -892,48 +835,6 @@ function ParkModal({ onClose, onPark }: { onClose: () => void; onPark: (minutes:
   );
 }
 
-function NoteModal({ onClose, onSave }: { onClose: () => void; onSave: (note: string, from: string, to: string) => void }) {
-  const [note, setNote] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  return (
-    <Modal title="Add new note" onClose={onClose}>
-      <div className="grid gap-2 p-3 text-[12px] text-white">
-        <div className="flex flex-wrap items-center gap-2">Valid between
-          <input aria-label="Valid from" placeholder="HH:MM" value={from} onChange={(e) => setFrom(e.target.value)} className="w-20 border border-[#777] bg-[#343434] px-1" /> and
-          <input aria-label="Valid to" placeholder="HH:MM" value={to} onChange={(e) => setTo(e.target.value)} className="w-20 border border-[#777] bg-[#343434] px-1" />
-        </div>
-        <textarea aria-label="Note text" value={note} maxLength={2000} onChange={(e) => setNote(e.target.value)} rows={5} className={ixArea} />
-      </div>
-      <Footer>
-        <IxButton disabled={!note.trim()} onClick={() => onSave(note, from, to)}>Ok</IxButton>
-        <IxButton onClick={onClose}>Cancel</IxButton>
-      </Footer>
-    </Modal>
-  );
-}
-
-function DetailsModal({ site, onClose, onCall }: { site: Site; onClose: () => void; onCall: (id: string) => void }) {
-  const [called, setCalled] = useState<string | null>(null);
-  return (
-    <Modal title="Details" onClose={onClose} width={620}>
-      <div className="p-3 text-[13px] text-white">
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-          <dt className="font-bold">Site</dt><dd>{site.name}</dd>
-          <dt className="font-bold">Account</dt><dd>{site.accountId}</dd>
-          <dt className="font-bold">Address</dt><dd>{site.address}</dd>
-          <dt className="font-bold">Phone</dt><dd>{site.phone}</dd>
-        </dl>
-        <p className="mt-3 font-bold">Contacts</p>
-        <GridTable caption="Call list" head={["Name", "Role", "Phone", ""]} rows={site.callList.map((c) => [c.name, c.role, c.phone, <IxButton key="c" onClick={() => { onCall(c.id); setCalled(c.name); }}>Call</IxButton>])} />
-        {called && <p role="status" className="mt-2 rounded bg-[#0b2a4d] px-3 py-2 text-xs">Call to {called} recorded. Phone calls are simulated on Computer 2 (Dialpad), not built yet.</p>}
-        <p className="mt-3 text-[11px] text-[#cfcfcf]">Training note: no reference screenshot of the live Details window exists yet; this layout is approximate.</p>
-      </div>
-      <Footer><IxButton onClick={onClose}>Close</IxButton></Footer>
-    </Modal>
-  );
-}
-
 function TalkdownModal({ site, speakers, defaultTalkdown, onClose, onSpeak }: { site: Site; speakers: { id: string; name: string }[]; defaultTalkdown: string | null; onClose: () => void; onSpeak: (cameraId: string, script: string, usedSiteScript: boolean) => void }) {
   const [cam, setCam] = useState(speakers[0]?.id ?? "");
   const [source, setSource] = useState<"site" | "default" | "">(site.talkdownScript ? "site" : defaultTalkdown ? "default" : "");
@@ -944,7 +845,7 @@ function TalkdownModal({ site, speakers, defaultTalkdown, onClose, onSpeak }: { 
     <Modal title="Audio" onClose={onClose} width={560}>
       <div className="grid gap-3 p-3 text-[12px] text-white">
         <label className="block font-bold"><span className="block">Speaker :</span>
-          <select aria-label="Speaker" value={cam} onChange={(e) => setCam(e.target.value)} className={cn(ixField, "mt-1 max-w-[298px]")}>
+          <select aria-label="Speaker" value={cam} onChange={(e) => setCam(e.target.value)} className={cn(ixField, "mt-1 w-full max-w-[298px]")}>
             {speakers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </label>

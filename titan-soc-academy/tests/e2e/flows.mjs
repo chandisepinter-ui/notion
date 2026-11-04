@@ -419,13 +419,52 @@ export async function run(base) {
     await page.getByRole("tab", { name: "Current Events" }).click();
     await page.getByText("MultiView Closed.").waitFor();
     await page.getByRole("button", { name: "Close Event" }).click();
-    await page.getByLabel("Outcome", { exact: true }).selectOption("Talkdown Successful");
+    await page.getByLabel("Outcome", { exact: true }).selectOption("Action Taken");
+    await page.getByLabel("Select Outcome").selectOption("Talkdown Successful");
     await page.getByLabel("Note", { exact: true }).fill("Site script talkdown played on CAM 04 Speaker. MultiView: subject gone from all cameras for 2 minutes.");
     await page.getByRole("button", { name: "Ok" }).click();
     await page.getByRole("button", { name: "Finish & score" }).click();
     await page.getByText("Passed", { exact: true }).waitFor();
     await page.getByText("Score 100%").waitFor();
     await page.screenshot({ path: "tests/e2e/screenshots/16-sim-result.png", fullPage: true });
+  });
+
+  await test("simulator: IMMIX screens — Raise, Details window, Audit Event, Problems, Note Details", async () => {
+    await page.goto(`${base}/simulator`);
+    await page.locator("li", { hasText: "PRACTICE-TALKDOWN" }).getByRole("button", { name: "Start practice" }).click();
+    await page.waitForURL(/\/sim\//);
+    await page.getByRole("button", { name: /PROCESS ALARM/ }).click();
+    await page.getByRole("button", { name: "Raise" }).click();
+    await page.getByRole("dialog", { name: "Raise to routing group" }).getByRole("button", { name: "Ok" }).click();
+    const [det] = await Promise.all([page.waitForEvent("popup"), page.getByRole("button", { name: "Details" }).click()]);
+    await det.getByRole("tab", { name: "Call List" }).click();
+    await det.getByRole("columnheader", { name: "Name" }).waitFor();
+    await det.getByRole("tab", { name: "Arming Schedule" }).click();
+    await det.getByRole("img", { name: /Monday: armed/ }).waitFor();
+    await det.close();
+    await page.getByRole("tab", { name: "Audit Event" }).click();
+    assert(await page.getByRole("button", { name: "Close Event" }).isDisabled(), "Close Event should be disabled on Audit Event");
+    await page.getByRole("tab", { name: "Notification" }).click();
+    await page.getByRole("radio", { name: "Call Made" }).check();
+    await page.getByLabel("Additional Details").fill("Spoke with facilities manager.");
+    await page.getByRole("button", { name: "Audit", exact: true }).click();
+    await page.getByRole("tab", { name: "Problems" }).click();
+    await page.getByLabel("Problem title").fill("Camera 3 focus");
+    await page.getByLabel("Problem text").fill("Image soft at night.");
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await page.getByRole("cell", { name: "Camera 3 focus" }).waitFor();
+    await page.getByRole("tab", { name: /Notes/ }).click();
+    await page.getByRole("button", { name: "Add new note" }).click();
+    await page.getByRole("dialog", { name: "Note Details" }).getByLabel("Note text").fill("Crew on site until 22:30");
+    await page.getByRole("dialog", { name: "Note Details" }).getByRole("button", { name: "Ok" }).click();
+    await page.getByRole("tab", { name: "Current Events" }).click();
+    await page.getByText(/Event raised to Practice Routing Group/).waitFor();
+    await page.getByText(/Notification : Subscriber .* Call Made/).waitFor();
+    await page.getByText(/Note added: Crew on site/).waitFor();
+    await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze().then((r) => {
+      const bad = r.violations.filter((v) => ["serious", "critical"].includes(v.impact));
+      assert(!bad.length, "axe: " + bad.map((v) => `${v.id} ${v.nodes[0]?.target}`).join("; "));
+    });
   });
 
   await test("simulator: answer keys are not sent to the browser", async () => {

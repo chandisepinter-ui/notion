@@ -200,9 +200,12 @@ export function applyAction(s: SimScenario, cfg: ImmixConfig, input: SimState, a
         if (as.status === "open") as.status = "queued";
         break;
       case "PLAY_TALKDOWN":
-      case "CALL_START": {
+      case "CALL_START":
+      case "NOTIFICATION": {
         const e = s.escalationWithoutBasis;
-        if (e && e.alertId === a.id && e.actionTypes.includes(action.type)) {
+        // A documented call ("Call Made") counts as calling out (CALL_START).
+        const kind = action.type === "NOTIFICATION" ? (action.result === "Call Made" ? "CALL_START" : null) : action.type;
+        if (e && kind && e.alertId === a.id && e.actionTypes.includes(kind)) {
           flag(e.code, "Escalated an alert the site instructions do not treat as actionable.", a.id);
         }
         break;
@@ -222,15 +225,18 @@ export function applyAction(s: SimScenario, cfg: ImmixConfig, input: SimState, a
       case "CLOSE": {
         if (as.status === "closed") throw new SimError("That event is already closed.");
         if (!cfg.outcomes.includes(action.outcome)) throw new SimError("Choose an outcome from the list.");
+        const subs = cfg.subOutcomes?.[action.outcome];
+        if (subs?.length && !subs.includes(action.subOutcome ?? "")) throw new SimError("Select an outcome from the second list.");
         if (a.type === "ECARE_FAILURE" && !as.reconnected) {
           flag("ECARE_CLOSE_UNRESOLVED", "Closed an E-CARE failure that had not reconnected and had no ticket.", a.id);
         }
         const isTalkdownAlert = !!s.postTalkdownVisibility?.length && a.type === "HUMAN_DETECTION" && a.truth?.actionable;
-        if (isTalkdownAlert && a.truth?.acceptedOutcomes.includes(action.outcome) && !absenceVerified(s, st)) {
+        if (isTalkdownAlert && outcomeAccepted(cfg, a.truth?.acceptedOutcomes ?? [], action.outcome, action.subOutcome) && !absenceVerified(s, st)) {
           flag("TALKDOWN_SUCCESS_UNVERIFIED", "Closed as a successful talkdown before verifying 2 minutes of absence on all cameras.", a.id);
         }
         as.status = "closed";
         as.outcome = action.outcome;
+        as.subOutcome = action.subOutcome;
         as.note = action.note.slice(0, 5000);
         as.closedAt = st.clock;
         break;
@@ -239,6 +245,13 @@ export function applyAction(s: SimScenario, cfg: ImmixConfig, input: SimState, a
   }
   st.actions.push(action);
   return st;
+}
+
+/** Does a close-out (level 1 + optional level 2) match one of the scenario's accepted outcomes? */
+export function outcomeAccepted(cfg: ImmixConfig, accepted: string[], outcome?: string, sub?: string): boolean {
+  if (!outcome) return false;
+  const full = sub ? `${outcome} > ${sub}` : outcome;
+  return accepted.some((acc) => acc === outcome || (!!sub && acc === sub) || acc === full || (cfg.aliases?.[acc] ?? []).includes(full));
 }
 
 export function isMultiviewOpen(st: SimState) {
@@ -302,7 +315,7 @@ export function evaluate(s: SimScenario, cfg: ImmixConfig, st: SimState): SimRes
           passed = st.actions.some((a) => a.type === "TAB_VIEWED" && a.tab === p.tab && s.alerts.find((x) => x.id === a.alertId)?.siteId === p.site);
           break;
         case "CLOSED_AS":
-          passed = !!alert && closeOf(alert.id).status === "closed" && !!alert.truth?.acceptedOutcomes.includes(closeOf(alert.id).outcome ?? "");
+          passed = !!alert && closeOf(alert.id).status === "closed" && outcomeAccepted(cfg, alert.truth?.acceptedOutcomes ?? [], closeOf(alert.id).outcome, closeOf(alert.id).subOutcome);
           break;
         case "NO_ERROR":
           passed = !st.errors.some((e) => ((p.codes as string[]) ?? []).includes(e.code));
@@ -315,7 +328,8 @@ export function evaluate(s: SimScenario, cfg: ImmixConfig, st: SimState): SimRes
         case "NOTE_HAS": {
           const notes = [
             ...Object.values(st.alerts).map((a) => a.note ?? ""),
-            ...st.actions.filter((a) => a.type === "PARK" || a.type === "ADD_NOTE").map((a) => (a as { note: string }).note),
+            ...st.actions.filter((a) => a.type === "PARK" || a.type === "ADD_NOTE" || a.type === "AUDIT_NOTE").map((a) => (a as { note: string }).note),
+            ...st.actions.filter((a) => a.type === "NOTIFICATION").map((a) => (a as { details: string }).details),
           ].join(" \n ").toLowerCase();
           passed = ((p.all as string[]) ?? []).every((w) => notes.includes(w.toLowerCase()));
           break;
